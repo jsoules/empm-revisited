@@ -2,10 +2,9 @@ import torch
 from torch import Tensor
 
 # TODO: Fix this for proper imports
-from ..grids import PolarGrid, SphericalHarmonics
+from ..grids import PolarGrid
 from ..parameters import Parameters
-from .CTF import CTF
-from .ImageStack import ImageStack
+from . import CTF, ImageStack, Volume
 
 # TODO: Set centrally
 MACHINE_TOLERANCE = 1e-6
@@ -303,7 +302,7 @@ class CTFCluster():
     # (for each cluster)
     def determine_principal_modes_from_ansatz(self,
         grid: PolarGrid,
-        spherical_harmonics: SphericalHarmonics,
+        spherical_harmonics: Volume,
         a_k_Y_base_yk_: Tensor,
         delta_sigma_base: float = 0.0   # this might also be vector-valued?
     ) -> Tensor:

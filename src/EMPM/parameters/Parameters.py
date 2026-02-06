@@ -28,7 +28,7 @@ class Parameters():
 
     # FTK-related
     r8_delta_r_max: float                   # default whatever delta r max was, or else 0.0
-    r8_svd_eps: float                       # default whatever svd_eps is, which is probably machine precision
+    r8_svd_eps: float                       # default to whatever svd_eps is
     r8_delta_x_requested_: torch.Tensor     # default None
     r8_delta_y_requested_: torch.Tensor     # default None
     l_max: int                              # default 25

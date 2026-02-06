@@ -3,8 +3,8 @@ from torch import Tensor
 from math import sqrt
 
 from ..parameters import Parameters
-from .PolarGrid import PolarGrid
-from ..stacks import ImageStack, Poses, CTFCluster, Templates
+from ..grids import PolarGrid
+from . import ImageStack, Poses, CTFCluster, Templates
 
 
 # TODO: Import from appropriate place
@@ -77,11 +77,10 @@ def local_yk__from_yk_(
 ) -> tuple[Tensor]:
     ...
 
+######
 
-
-
-class SphericalHarmonics():
-    """Class implementing descriptor of spherical harmonic representation for volumes.
+class Volume():
+    """Class representing a volume using a spherical harmonic basis.
 
     Attributes:
         l_max_ (Tensor): Maximum order of spherical harmonic something or other.
@@ -192,7 +191,6 @@ class SphericalHarmonics():
         )
     
 
-    # TODO: A Templates object with the viewing angles & the actual template stack tensor
     def generate_templates(self,
         parameter: Parameters,
         grid: PolarGrid,

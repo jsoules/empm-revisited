@@ -2,8 +2,10 @@ import torch
 from torch import Tensor
 from ..grids import PolarGrid
 
-# This is going to be the actual CTF stacks.
 class CTF():
+    """Class representing a stack of CTFs (contrast transfer functions),
+    in Fourier space.
+    """
 
     n_CTF: int
     CTF_k_p_wkC__: Tensor
@@ -19,6 +21,7 @@ class CTF():
 
     # TODO: Actually can we build this from the image source files or something?
     def __init__(self, CTF_k_p_wkC__: Tensor, index_nCTF_from_nM_: Tensor):
+        raise NotImplementedError()
         ...
 
 

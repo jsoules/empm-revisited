@@ -2,7 +2,7 @@ import torch
 from torch import Tensor
 from typing_extensions import Self
 from .PolarGrid import PolarGrid
-from ..parameters.Parameters import Parameters
+from ..parameters import Parameters
 
 from typing import Any
 

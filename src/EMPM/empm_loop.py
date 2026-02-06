@@ -3,9 +3,8 @@ from torch import Tensor
 from math import floor
 
 from .parameters import Parameters
-from .grids import PolarGrid, SphericalHarmonics, FTK
-from .stacks import CTFCluster, ImageStack, Poses, force_isotropy
-from .empm_steps import Alignment
+from .grids import PolarGrid, FTK
+from .stacks import Alignment, CTFCluster, ImageStack, Poses, force_isotropy, Volume
 
 MACHINE_TOLERANCE = 1e-6
 
@@ -21,7 +20,7 @@ MACHINE_TOLERANCE = 1e-6
 def execute_empm(       # replaces tfpmut_6
     parameter: Parameters,
     grid: PolarGrid,
-    harmonics: SphericalHarmonics,
+    volume: Volume,
     image_stack: ImageStack,
     ctf_cluster: CTFCluster,
     poses: Poses,
@@ -39,13 +38,13 @@ def execute_empm(       # replaces tfpmut_6
         ftk = FTK.from_grid(grid, parameter)
 
     if alignment is None:
-        alignment = Alignment(parameter, grid, harmonics, ctf_cluster, image_stack, ftk, poses)
+        alignment = Alignment(parameter, grid, volume, ctf_cluster, image_stack, ftk, poses)
 
     if parameter.rseed is not None:
         torch.manual_seed(parameter.rseed)
 
     if parameter.flag_save_stage > 2:
-        _checkpoint_preloop(parameter, grid, harmonics, ctf_cluster, poses, ftk)
+        _checkpoint_preloop(parameter, grid, volume, ctf_cluster, poses, ftk)
 
     # if flag_alternate_MS_vs_SM == 0, we do MS fitting for the first half of the iterations
     # and SM fitting for the rest. Otherwise, alternate every time, starting with MS.
@@ -61,8 +60,8 @@ def execute_empm(       # replaces tfpmut_6
         if parameter.flag_save_stage > 2:
             _checkpoint_iteration_displacement(parameter, niteration, poses, image_stack, M_pert_k_p_wkM__, flag_MS_vs_SM)
 
-        harmonics.reconstruct_volume(parameter, grid, image_stack, poses, ctf_cluster, weight_3d_k_p_r_, niteration)
-        templates = harmonics.generate_templates(parameter, grid, niteration)
+        volume.reconstruct_volume(parameter, grid, image_stack, poses, ctf_cluster, weight_3d_k_p_r_, niteration)
+        templates = volume.generate_templates(parameter, grid, niteration)
         alignment.align(templates, M_pert_k_p_wkM__, niteration)
         alignment.update_poses_from_alignment(templates, niteration)
         poses.update_translations(parameter, MACHINE_TOLERANCE)
@@ -72,13 +71,14 @@ def execute_empm(       # replaces tfpmut_6
 
     parameter.print_per_verbosity(f' %% [finished execute_empm, former tfpmut_6]')
 
-    return harmonics.a_k_Y_reco_yk_
+    # TODO: Probably should return the volume object
+    return volume.a_k_Y_reco_yk_
 
 
 def _checkpoint_preloop(
     parameter: Parameters,
     grid: PolarGrid,
-    harmonics: SphericalHarmonics,
+    harmonics: Volume,
     ctf_cluster: CTFCluster,
     poses: Poses,
     ftk: FTK

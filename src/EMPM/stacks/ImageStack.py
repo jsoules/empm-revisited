@@ -17,7 +17,6 @@ class ImageStack():
         
         # TODO: Confirm delta-x and delta-y are same size (check would belong in the Poses class)
         if grid.is_uniform:
-
             L_c_wkv__ = \
                 grid.k_c_0_wk_ * poses.image_delta_x_acc_M_[:, None] \
                 + grid.k_c_1_wk_ * poses.image_delta_y_acc_M_[:, None]
@@ -36,6 +35,7 @@ class ImageStack():
             # (even for adaptive grids) so the above branch should Just Work
 
 # TODO: NOTE: This is a vectorized way of setting up k_c_s for uniform grids.
+# (For reference elsewhere)
 
 # get each inplane rotation, but don't repeat the 2pi at the end
 # sadly, pytorch linspace doesn't offer an option for exclusive spacing
