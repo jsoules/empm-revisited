@@ -1,0 +1,48 @@
+[build-system]
+requires = ["uv_build>=0.9.15,<0.10.0"]
+build-backend="uv_build"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project]
+name = "EMPM"
+version = "0.0.1"
+description = "Python package for EMPM Cryo-EM ab-initio reconstruction"
+authors = [
+    { name = "Adi Rangan", email = "arangan@flatironinstitute.org" },
+    { name = "Jeff Soules", email = "jsoules@flatironinstitute.org" }
+]
+readme = "README.md"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.14"
+dependencies = [
+    "numpy>=1.23.5",
+    "scipy",
+    "torch>=2.2.0"
+]
+
+[dependency-groups]
+dev = [
+    "ipython>=9.8.0",
+    "pytest>=9.0.1",
+    "pytest-cov>=7.0.0"
+]
+
+
+[tool.mypy]
+plugins = ["numpy.typing.mypy_plugin"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+omit = ["test/*"]
+
+[tool.pytest.ini_options]
+addopts = "--ignore=test/integration/backup --ignore=test/unit/backup --cov --cov-report xml --cov-report term-missing -rs"
+norecursedirs = "test/helpers"
+pythonpath = ["test/helpers"]
+tmp_path_retention_policy = "none"
