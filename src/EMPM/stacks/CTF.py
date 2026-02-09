@@ -1,6 +1,20 @@
 import torch
 from torch import Tensor
+from ..parameters import Parameters, MACHINE_TOLERANCE
 from ..grids import PolarGrid
+
+# NOTE: DUPLICATED CODE FROM CTFCluster.py
+# should be centralized if it's going to keep popping up
+def _svd_macro(m: Tensor, n_svd: int = -1) -> tuple[Tensor, Tensor, Tensor]:
+    if n_svd < 0:
+        n_svd = min(m.shape)
+    _U__, _S_, _V__ = torch.linalg.svd(m.T, full_matrices=False)
+    _U__ = _U__.T
+    # Not sure if this does anything in realistic cases?
+    _U__ = _U__[0:n_svd, :]
+    _S_ = _S_[0:n_svd]
+    _V__ = _V__[0:n_svd, :]
+    return (_U__, _S_, _V__)
 
 class CTF():
     """Class representing a stack of CTFs (contrast transfer functions),
@@ -44,3 +58,40 @@ class CTF():
                     torch.tile(self.CTF_k_p_wkC__[:,:,None], (1, 1, grid.n_w_max)),
                     (-1, grid.n_w_sum)
                 )
+
+
+    # NOTE: This is very similar to operations in CTFCluster to
+    # determine per-cluster principal modes (determine_principal_modes)
+    def empirically_determine_rank(self, parameter: Parameters, grid: PolarGrid, n_M: int) -> int:
+        # NOTE: This is probably not necessary.
+        # Indexing step would find the indices corresponding to all points,
+        # and any CTF index that appears in the images-to-ctfs index.
+        # But we expect the latter map to be bijective, as each image should have its
+        # own unique CTF, esp. once we've broadcast isotropic CTFs.
+        # So this only does something in the case where we have CTFs in the tensor
+        # that aren't actually used by any image, in which case we're better off just
+        # dropping those from the tensor or something...
+
+        # # # tmp_i8_index_rhs_ = matlab_index_2d_0(n_w_sum,':',
+        # # #                                       n_CTF,index_nCTF_from_nM_)
+        
+        # Now reshaping CTF_k_p_wkC__ to (n_images x n_total points) is unnecessary as
+        # the CTF tensor already has that shape, EXCEPT again in the case where n_CTF
+        # does not match n_M, in which case this would fail anyway.
+        # Just to be sure we'll assert it.
+
+        # # # _, SCTF_ ,_ = matlab_svds(torch.reshape(CTF_k_p_wkC__.ravel()[tmp_i8_index_rhs_],
+        # # #                                       (n_M, n_w_sum)),
+        # # #                                       int(np.minimum(n_w_sum,n_M)))
+        
+        assert self.CTF_k_p_wkC__.shape == (n_M, grid.n_w_sum)
+        max_rank = min(grid.n_w_sum, n_M)
+        _, SCTF_ ,_ = _svd_macro(self.CTF_k_p_wkC__, max_rank)
+        # TODO QUERY: Honestly though, if the biggest one isn't over machine tolerance,
+        # isn't that its own sort of problem?
+        divisor = max(MACHINE_TOLERANCE, SCTF_[0])  # as S is in desc order, the first one is the max
+        rank = int((SCTF_ / divisor > parameter.tolerance_master).sum().item())
+        # as written, would find the indices of all S-values from SVD which are non-negligible,
+        # then add 1 to the maximum index, which (as they're sorted and 0-indexed) yields a count.
+        # But easier just to count them
+        return rank

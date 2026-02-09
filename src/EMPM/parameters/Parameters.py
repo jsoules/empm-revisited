@@ -1,11 +1,20 @@
+from __future__ import annotations
+
 from typing_extensions import Self
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import torch
+from torch import Tensor
 from scipy.io import savemat
+
+if TYPE_CHECKING:
+    from ..stacks import CTF, ImageStack
+    from ..grids import PolarGrid
 
 # TODO: Even better to use a data class or something
 # TODO: Better handling of random seed--need to support unset seed
 # TODO: Need to get earlier access to k_p_r_max, incorporate as part of params
+
+MACHINE_TOLERANCE = 1e-6
 
 class Parameters():
     flag_verbose: int
@@ -45,6 +54,13 @@ class Parameters():
     flag_precompute_UX_CTF_S_k_q_wnS__: int
     flag_precompute_UX_CTF_S_l2_S_: int
 
+    # From tfpmut_wrap_6.py, aka coordinating multiple runs of empm loop
+    flag_rank_vs_tolerance: int
+    flag_clump_vs_cluster: int
+    rank_pm: int
+    rank_CTF: int
+
+
 
     def __init__(self, *,
         flag_verbose: int = 0,
@@ -72,6 +88,10 @@ class Parameters():
         n_b_degree: int = 65,
         flag_p_vs_c: int = 0,
         flag_tf_vs_bf: int = 1,
+        flag_rank_vs_tolerance: int = 0,
+        flag_clump_vs_cluster: int = -1,
+        rank_pm: int = 10,
+        rank_CTF: int = -1,
     ):
         k_p_r_max = 0.
         if delta_r_upb < 0:
@@ -113,12 +133,29 @@ class Parameters():
         self.flag_p_vs_c = flag_p_vs_c
         self.flag_tf_vs_bf = flag_tf_vs_bf
 
+        # empm_loop wrapper level
+        self.flag_rank_vs_tolerance = flag_rank_vs_tolerance
+        if flag_clump_vs_cluster < 0:
+            # if unset, should be whatever the rank_vs_tolerance flag was
+            flag_clump_vs_cluster = flag_rank_vs_tolerance
+        self.flag_clump_vs_cluster = flag_clump_vs_cluster
+        self.rank_pm = rank_pm
+        self.rank_CTF = rank_CTF
+
         self.flag_precompute_M_k_q_wkM__ = 1
         self.flag_precompute_UX_T_M_l2_dM__ = 1
         self.flag_precompute_UX_M_l2_M_ = 1
         self.flag_precompute_svd_V_UX_M_lwnM____ = 1
         self.flag_precompute_UX_CTF_S_k_q_wnS__ = 1
         self.flag_precompute_UX_CTF_S_l2_S_ = 1
+
+
+    def set_empirical_ctf_rank(self, ctf: CTF, grid: PolarGrid, imgs: ImageStack):
+        if self.rank_CTF > 0:
+            # maybe this is a hard error?
+            print(f"WARNING: Attempt to set empirical CTF rank when a non-negative one was manually set")
+        rank = ctf.empirically_determine_rank(self, grid, imgs.n_M)
+        self.rank_ctf = rank
 
 
     def write_to_file(self):

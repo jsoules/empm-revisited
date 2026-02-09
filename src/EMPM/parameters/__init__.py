@@ -1,1 +1,1 @@
-from .Parameters import Parameters
+from .Parameters import Parameters, MACHINE_TOLERANCE
