@@ -2,11 +2,9 @@ import torch
 from torch import Tensor
 from math import floor
 
-from .parameters import Parameters
+from .parameters import Parameters, MACHINE_TOLERANCE
 from .grids import PolarGrid, FTK
 from .stacks import Alignment, CTFCluster, ImageStack, Poses, force_isotropy, Volume
-
-MACHINE_TOLERANCE = 1e-6
 
 # TODO: THIS AFFECTS CALLERS
 # TODO NOTE: When setting up parameters, we want r8_svd_eps to be TOLERANCE_MASTER not its default value
@@ -40,8 +38,10 @@ def execute_empm(       # replaces tfpmut_6
     if alignment is None:
         alignment = Alignment(parameter, grid, volume, ctf_cluster, image_stack, ftk, poses)
 
-    if parameter.rseed is not None:
-        torch.manual_seed(parameter.rseed)
+    # This should have been seeded higher up if it is required
+    # Otherwise we'll be resetting the seed
+    # if parameter.rseed is not None:
+    #     torch.manual_seed(parameter.rseed)
 
     if parameter.flag_save_stage > 2:
         _checkpoint_preloop(parameter, grid, volume, ctf_cluster, poses, ftk)

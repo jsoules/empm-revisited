@@ -3,11 +3,8 @@ from torch import Tensor
 
 # TODO: Fix this for proper imports
 from ..grids import PolarGrid
-from ..parameters import Parameters
+from ..parameters import Parameters, MACHINE_TOLERANCE
 from . import CTF, ImageStack, Volume
-
-# TODO: Set centrally
-MACHINE_TOLERANCE = 1e-6
 
 ### TODO import knn_cluster_CTF_k_p_r_kC__1 from somewhere reasonable
 ## (https://github.com/adirangan/dir_cryoem/blob/main/dir_rangan_python/knn_cluster_CTF_k_p_r_kC__1.py)
@@ -217,12 +214,20 @@ class CTFCluster():
     # (it's orthonormal so UX is the compression and UX.T is the decompression)
     # (note UX is NOT square, that's why we achieve a dimension reduction)
     def determine_principal_modes(self,
-        pm_X_kkc___: Tensor,
+        # pm_X_kkc___: Tensor,
         parameters: Parameters,
         grid: PolarGrid,
+        images: ImageStack,
+        volume: Volume,
+        delta_sigma_base: float = 0.0   # TODO check if could be vector-valued
     ) -> None:
+        if volume.a_k_Y_reco_yk_.numel() == 0:
+            pm_X_kkc___ = self._determine_principal_modes_empirically(grid, images)
+        else:
+            pm_X_kkc___ = self._determine_principal_modes_from_ansatz(grid, volume, delta_sigma_base)
+        
         # Target rank for the weight matrix is one less than the number of frequencies in the grid.
-        n_UX_rank = grid.n_k_p_r - 1  # ??
+        n_UX_rank = grid.n_k_p_r - 1
         for ncluster in range(self.n_cluster):
             # # tmp_X_kk__ = torch.reshape(pm_X_kkc___[ncluster,:,:], grid_shape)
             # This is already nkpr x nkpr by construction
@@ -243,16 +248,11 @@ class CTFCluster():
             assert tmp_UX__.shape == (n_UX_rank, grid.n_k_p_r)
             self.pm_UX_knc___[ncluster,:,:] = tmp_UX__
 
-            # self.pm_UX_knc___[ncluster,:,:] = torch.reshape(
-            #     tmp_UX__.ravel()[tmp_i8_index_rhs_],
-            #     (n_UX_rank, grid.n_k_p_r)
-            # )
-
 
     # this is actually setting up something like a cross-correlation matrix from which one
     # can deduce the information provided by some set of linear combinations of the radii
     # (for each cluster)
-    def determine_principal_modes_empirically(self,
+    def _determine_principal_modes_empirically(self,
         grid: PolarGrid,
         images: ImageStack
     ) -> Tensor:
@@ -300,10 +300,9 @@ class CTFCluster():
     # this is actually setting up something like a cross-correlation matrix from which one
     # can deduce the information provided by some set of linear combinations of the radii
     # (for each cluster)
-    def determine_principal_modes_from_ansatz(self,
+    def _determine_principal_modes_from_ansatz(self,
         grid: PolarGrid,
-        spherical_harmonics: Volume,
-        a_k_Y_base_yk_: Tensor,
+        volume: Volume,
         delta_sigma_base: float = 0.0   # this might also be vector-valued?
     ) -> Tensor:
             matrix_shape = (self.n_cluster, grid.n_k_p_r, grid.n_k_p_r)
@@ -321,10 +320,10 @@ class CTFCluster():
                     grid.n_k_p_r,
                     grid.k_p_r_,
                     grid.weight_2d_k_p_r_,
-                    spherical_harmonics.l_max_,
+                    volume.l_max_,
                     None,
                     None,
-                    a_k_Y_base_yk_,
+                    volume.a_k_Y_reco_yk_,
                     tmp_CTF_k_p_r_xavg_kk__,
                     delta_sigma_base,
                 )[:2]
@@ -385,3 +384,14 @@ class CTFCluster():
 
         # # #     assert( CTF_k_p_r_xavg_k_.numel() == grid.n_k_p_r)
         # # #     self.CTF_k_p_r_xavg_kc__[ncluster,:] = CTF_k_p_r_xavg_k_
+    
+
+    def checkpoint_report_clustering(self, params: Parameters):
+        params.save_report(
+            name_tail="_stage_2.mat",
+            data = {
+                "pm_UX_knc___": self.pm_UX_knc___,
+                # "pm_SX_kc__": self.pm_SX_kc__,
+                "pm_n_UX_rank_c_": self.pm_n_UX_rank_c_,},
+            min_level = 1
+        )
