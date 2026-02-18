@@ -72,7 +72,7 @@ def execute_empm(       # replaces tfpmut_6
     parameter.print_per_verbosity(f' %% [finished execute_empm, former tfpmut_6]')
 
     # TODO: Probably should return the volume object
-    return volume.a_k_Y_reco_yk_
+    return (volume, poses)
 
 
 def _checkpoint_preloop(

@@ -364,8 +364,10 @@ class CTFCluster():
         weight_sums_per_cluster = torch.mm(one_hot, self.ctfs.CTF_k_p_wkC__)
         isotropic = _force_isotropy(weight_sums_per_cluster, grid)
         # Result is clusters x radii (we averaged over the inplanes)
-        # divide by per-cluster CTF count, to finish the averaging
-        self.CTF_k_p_r_xavg_kc__ = isotropic / self.n_index_nM_from_ncluster_
+        # divide by per-cluster CTF count, to finish the averaging.
+        # (We assume that clusters will always be indexed continuously from 0)
+        ctfs_per_cluster_ = torch.bincount(self.index_ncluster_from_nCTF_)
+        self.CTF_k_p_r_xavg_kc__ = isotropic / ctfs_per_cluster_
 
         # # # for ncluster in range(self.n_cluster):
         # # #     images_this_cluster_ = self.index_nM_from_ncluster__[ncluster]
