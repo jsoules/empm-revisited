@@ -207,7 +207,7 @@ class Parameters():
         res['flag_save_stage'] = self.flag_save_stage
         res['fname_pre'] = self.fname_pre
         res['flag_alternate_MS_vs_SM'] = self.flag_alternate_MS_vs_SM
-        res['flag_MS_vs_SM'] = 1
+        res['flag_MS_vs_SM'] = 1    # TODO: this might not be the right thing, gotta look at context
 
         res['flag_precompute_M_k_q_wkM__'] = self.flag_precompute_M_k_q_wkM__
         res['flag_precompute_UX_T_M_l2_dM__'] = self.flag_precompute_UX_T_M_l2_dM__
@@ -226,6 +226,12 @@ class Parameters():
         res['n_b_degree'] = self.n_b_degree
         res['flag_p_vs_c'] = self.flag_p_vs_c
         res['flag_tf_vs_bf'] = self.flag_tf_vs_bf
+
+        # From tfpmut_wrap_6 / coordinating multiple empm-loop runs
+        res['flag_rank_vs_tolerance'] = self.flag_rank_vs_tolerance
+        res['flag_clump_vs_cluster'] = self.flag_clump_vs_cluster
+        res['rank_pm'] = self.rank_pm
+        res['rank_CTF'] = self.rank_CTF
 
         return res
 
