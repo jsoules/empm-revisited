@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import torch
 from torch import Tensor
+from typing import Any, TYPE_CHECKING
 from typing_extensions import Self
-from .PolarGrid import PolarGrid
-from ..parameters import Parameters
 
-from typing import Any
+if TYPE_CHECKING:
+    from .PolarGrid import PolarGrid
+    from empm.parameters import Parameters
+
 
 # TODO: Proper import for tfh_FTK_4 fn, sig reproduced below
 def tfh_FTK_4(

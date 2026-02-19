@@ -1,10 +1,19 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 import torch
 from torch import Tensor
 from math import sqrt
 
-from ..parameters import Parameters
-from ..grids import PolarGrid
-from . import ImageStack, Poses, CTFCluster, Templates
+from empm.parameters import Parameters
+from empm.grids import PolarGrid
+from .Templates import Templates
+
+if TYPE_CHECKING:
+    from .CTFCluster import CTFCluster
+    from .ImageStack import ImageStack
+    from .Poses import Poses
+
 
 
 # TODO: Import from appropriate place

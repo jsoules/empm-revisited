@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import torch
 from torch import Tensor
+from typing import TYPE_CHECKING
 
-# TODO: Fix this for proper imports
-from ..grids import PolarGrid
-from ..parameters import Parameters, MACHINE_TOLERANCE
-from . import CTF, ImageStack, Volume
+from empm.parameters import MACHINE_TOLERANCE
+
+if TYPE_CHECKING:
+    from . import CTF, ImageStack, Volume
+    from empm.grids import PolarGrid
+    from empm.parameters import Parameters
 
 ### TODO import knn_cluster_CTF_k_p_r_kC__1 from somewhere reasonable
 ## (https://github.com/adirangan/dir_cryoem/blob/main/dir_rangan_python/knn_cluster_CTF_k_p_r_kC__1.py)

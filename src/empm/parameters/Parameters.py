@@ -7,8 +7,8 @@ from torch import Tensor
 from scipy.io import savemat
 
 if TYPE_CHECKING:
-    from ..stacks import CTF, ImageStack
-    from ..grids import PolarGrid
+    from empm.stacks import CTF, ImageStack
+    from empm.grids import PolarGrid
 
 # TODO: Even better to use a data class or something
 # TODO: Better handling of random seed--need to support unset seed
