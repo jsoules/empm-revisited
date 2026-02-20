@@ -27,7 +27,7 @@ def execute_empm(       # replaces tfpmut_6
     ftk: FTK | None =None,
 ):
     parameter.print_per_verbosity(f' %% [entering execute_empm, former tfpmut_6]')
-    ctf_cluster.make_cluster_averages(grid)
+    ctf_cluster.make_cluster_averages(grid) # should be pleonastic--it's called during cluster construction
     flag_MS_vs_SM: bool = False
     half_iterations = floor(parameter.n_iteration / 2)
     M_pert_k_p_wkM__ = None
