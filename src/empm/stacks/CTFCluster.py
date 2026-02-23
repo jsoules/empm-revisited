@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import torch
 from torch import Tensor
+from typing import TYPE_CHECKING
 
-# TODO: Fix this for proper imports
-from ..grids import PolarGrid
-from ..parameters import Parameters, MACHINE_TOLERANCE
-from . import CTF, ImageStack, Volume
+from empm.parameters import MACHINE_TOLERANCE
+
+if TYPE_CHECKING:
+    from . import CTF, ImageStack, Volume
+    from empm.grids import PolarGrid
+    from empm.parameters import Parameters
 
 ### TODO import knn_cluster_CTF_k_p_r_kC__1 from somewhere reasonable
 ## (https://github.com/adirangan/dir_cryoem/blob/main/dir_rangan_python/knn_cluster_CTF_k_p_r_kC__1.py)
@@ -351,41 +356,28 @@ class CTFCluster():
         #   num_classes = number-of-clusters
         #   oh = F.one_hot(ctfs-to-cluster-map, num_classes=num_classes).T.to(torch.float32)
         #   sum-per-cluster = oh @ ctfs
-        # but since that's really sparse, it's ~5x faster to use sparse representation
+        # now, that's really sparse, so it'd be ~5x faster to use sparse representation
         # see https://discuss.pytorch.org/t/sum-over-various-subsets-of-a-tensor/31881/8
-        indices = torch.stack((
-                self.index_ncluster_from_nCTF_,
-                torch.arange(self.ctfs.n_CTF, device=self.index_ncluster_from_nCTF_.device)
-        ))
-        values = torch.ones_like(self.index_ncluster_from_nCTF_, dtype=torch.float32)
-        one_hot = torch.sparse_coo_tensor(indices, values, size=(self.n_cluster, self.ctfs.n_CTF))
-        # NOTE: RESHAPING ASSUMES UNIFORM GRID (as did original)
-        # [IDEA: could maybe do a similar one-hot trick to handle nonuniform grids???]
-        weight_sums_per_cluster = torch.mm(one_hot, self.ctfs.CTF_k_p_wkC__)
+        # unfortunately, that doesn't work when broadcasting is required, so fall back
+        # to the dense version.
+        # # # indices = torch.stack((
+        # # #         self.index_ncluster_from_nCTF_,
+        # # #         torch.arange(self.ctfs.n_CTF, device=self.index_ncluster_from_nCTF_.device)
+        # # # ))
+        # # # values = torch.ones_like(self.index_ncluster_from_nCTF_, dtype=torch.float32)
+        # # # one_hot = torch.sparse_coo_tensor(indices, values, size=(self.n_cluster, self.ctfs.n_CTF))
+        # # # # NOTE: RESHAPING ASSUMES UNIFORM GRID (as did original)
+        # # # # [IDEA: could maybe do a similar one-hot trick to handle nonuniform grids???]
+        # # # weight_sums_per_cluster = torch.mm(one_hot, self.ctfs.CTF_k_p_wkC__)
+        num_classes = self.n_cluster
+        one_hot = torch.nn.functional.one_hot(self.index_ncluster_from_nCTF_, num_classes=num_classes).T.to(torch.float32)
+        weight_sums_per_cluster = (one_hot @ torch.permute(self.ctfs.CTF_k_p_wkC__, (2, 0, 1))).permute(1, 2, 0)
         isotropic = _force_isotropy(weight_sums_per_cluster, grid)
         # Result is clusters x radii (we averaged over the inplanes)
         # divide by per-cluster CTF count, to finish the averaging.
         # (We assume that clusters will always be indexed continuously from 0)
         ctfs_per_cluster_ = torch.bincount(self.index_ncluster_from_nCTF_)
-        self.CTF_k_p_r_xavg_kc__ = isotropic / ctfs_per_cluster_
-
-        # # # for ncluster in range(self.n_cluster):
-        # # #     images_this_cluster_ = self.index_nM_from_ncluster__[ncluster]
-        # # #     cluster_image_count = images_this_cluster_.numel()
-
-        # # #     tmp_i8_index_rhs_ = matlab_index_2d_0(
-        # # #         grid.n_w_sum,':',
-        # # #         self.ctfs.n_CTF,
-        # # #         self.ctfs.index_nCTF_from_nM_[images_this_cluster_]
-        # # #     )
-        # # #     ctf_shape = (cluster_image_count, grid.n_k_p_r, grid.n_w_max)
-        # # #     CTF_k_p_r_xavg_k_ = torch.mean(
-        # # #         torch.reshape(self.ctfs.CTF_k_p_wkC__.ravel()[tmp_i8_index_rhs_], ctf_shape),
-        # # #         (2,0)
-        # # #     ).ravel()
-
-        # # #     assert( CTF_k_p_r_xavg_k_.numel() == grid.n_k_p_r)
-        # # #     self.CTF_k_p_r_xavg_kc__[ncluster,:] = CTF_k_p_r_xavg_k_
+        self.CTF_k_p_r_xavg_kc__ = isotropic / ctfs_per_cluster_[:, None]
     
 
     def checkpoint_report_clustering(self, params: Parameters):

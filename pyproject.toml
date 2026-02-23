@@ -2,9 +2,6 @@
 requires = ["uv_build>=0.9.15,<0.10.0"]
 build-backend="uv_build"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-
 [project]
 name = "EMPM"
 version = "0.0.1"

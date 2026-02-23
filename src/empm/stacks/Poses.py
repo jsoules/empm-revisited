@@ -1,8 +1,12 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 import torch
 from torch import tensor, Tensor
 from typing_extensions import Self
 
-from ..parameters import Parameters
+if TYPE_CHECKING:
+    from empm.parameters import Parameters
 
 class Poses():
     """Class tracking currently assigned pose for a collection of images.

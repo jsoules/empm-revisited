@@ -1,7 +1,14 @@
+from __future__ import annotations
+
 import torch
 from torch import Tensor
-from ..parameters import Parameters, MACHINE_TOLERANCE
-from ..grids import PolarGrid
+from typing import TYPE_CHECKING
+
+from empm.parameters import MACHINE_TOLERANCE
+
+if TYPE_CHECKING:
+    from empm.parameters import Parameters
+    from empm.grids import PolarGrid
 
 # NOTE: DUPLICATED CODE FROM CTFCluster.py
 # should be centralized if it's going to keep popping up

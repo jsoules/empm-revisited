@@ -1,10 +1,17 @@
+from __future__ import annotations
+
 import torch
 from torch import Tensor
+from typing import TYPE_CHECKING
 
-# TODO: Fix this for proper imports
-from ..parameters import Parameters # only for type hinting
-from ..grids import PolarGrid, FTK  # only for type hinting
-from . import CTFCluster, ImageStack, Poses, Templates, Volume, force_isotropy
+# TODO: Maybe this code belongs somewhere else anyway?
+from .CTFCluster import force_isotropy
+
+if TYPE_CHECKING:
+    from empm.parameters import Parameters
+    from empm.grids import PolarGrid, FTK
+    from . import CTFCluster, ImageStack, Poses, Templates, Volume
+
 
 
 # TODO: Proper import for tfpmh_Z_cluster_wrap_SM__14

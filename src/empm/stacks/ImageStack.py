@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import torch
 from torch import Tensor
+from typing import TYPE_CHECKING
 
-from .Poses import Poses
-from ..grids import PolarGrid
+if TYPE_CHECKING:
+    from .Poses import Poses
+    from empm.grids import PolarGrid
 
 class ImageStack():
     n_M: int
@@ -15,7 +19,7 @@ class ImageStack():
         if scratch is None:
             scratch = torch.ones_like(self.M_k_p_wkM__, dtype=torch.complex64)
         
-        # TODO: Confirm delta-x and delta-y are same size (check would belong in the Poses class)
+        # TODO: Confirm delta-x and delta-y are same size (that check would belong in the Poses class)
         if grid.is_uniform:
             L_c_wkv__ = \
                 grid.k_c_0_wk_ * poses.image_delta_x_acc_M_[:, None] \
