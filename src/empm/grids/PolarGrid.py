@@ -1,29 +1,28 @@
-import numpy as np
 import torch
 from torch import Tensor
-# from typing import Self  # note this requires python >= 3.11;
+from typing import Self  # note this requires python >= 3.11;
 # for python 3.10 use
-from typing_extensions import Self
+# from typing_extensions import Self
 
-## TODO: Import get_weight_2d_2 properly
-# stub here to keep my linter happy
-def get_weight_2d_2(
-        flag_verbose: int = 0,
-        n_k_p_r: int = 0,
-        k_p_r_: Tensor = torch.zeros(0),
-        k_p_r_max: int = 0,
-        template_k_eq_d: float = -1.,
-        n_w_0in_: Tensor = torch.zeros(0),
-        weight_3d_k_p_r_: Tensor = torch.zeros(0)
-) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
-    # # #         n_w_,
-    # # #         weight_2d_k_p_r_,
-    # # #         weight_2d_k_p_wk_,
-    # # #         k_p_r_wk_,
-    # # #         k_p_w_wk_,
-    # # #         k_c_0_wk_,
-    # # #         k_c_1_wk_,
-    ...
+from dir_empm.get_weight_2d_2 import get_weight_2d_2
+
+# # # def get_weight_2d_2(
+# # #         flag_verbose: int = 0,
+# # #         n_k_p_r: int = 0,
+# # #         k_p_r_: Tensor = torch.zeros(0),
+# # #         k_p_r_max: int = 0,
+# # #         template_k_eq_d: float = -1.,
+# # #         n_w_0in_: Tensor = torch.zeros(0),
+# # #         weight_3d_k_p_r_: Tensor = torch.zeros(0)
+# # # ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
+# # #     # # #         n_w_,
+# # #     # # #         weight_2d_k_p_r_,
+# # #     # # #         weight_2d_k_p_wk_,
+# # #     # # #         k_p_r_wk_,
+# # #     # # #         k_p_w_wk_,
+# # #     # # #         k_c_0_wk_,
+# # #     # # #         k_c_1_wk_,
+# # #     ...
 
 class PolarGrid():
     """Class implementing 2D polar-coordinate grid.

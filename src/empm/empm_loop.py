@@ -24,7 +24,7 @@ def execute_empm(       # replaces tfpmut_6
     poses: Poses,
     weight_3d_k_p_r_: Tensor,       # TODO: can we link this to the spherical harmonic object?
     alignment: Alignment | None = None,
-    ftk: FTK | None =None,
+    ftk: FTK | None = None,
 ):
     parameter.print_per_verbosity(f' %% [entering execute_empm, former tfpmut_6]')
     ctf_cluster.make_cluster_averages(grid) # should be pleonastic--it's called during cluster construction

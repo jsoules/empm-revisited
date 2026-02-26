@@ -5,6 +5,10 @@ import torch
 from torch import Tensor
 from math import sqrt
 
+from dir_empm.qbp_uniform_over_n_k_p_r_10 import qbp_uniform_over_n_k_p_r_10
+from dir_empm.pm_template_3 import pm_template_3
+from dir_empm.local_yk__from_yk_ import local_yk__from_yk_
+
 from empm.parameters import Parameters
 from empm.grids import PolarGrid
 from .Templates import Templates
@@ -14,77 +18,73 @@ if TYPE_CHECKING:
     from .ImageStack import ImageStack
     from .Poses import Poses
 
+# FYI
+# # def qbp_uniform_over_n_k_p_r_10(
+# #         qbp_eps=None,               # tolerance
+# #         n_k_p_r=None,               # from grid
+# #         k_p_r_=None,                # from grid
+# #         l_max_=None,                # from spherical harmonics
+# #         n_w_=None,                  # from grid
+# #         n_M=None,                   # from image stack
+# #         M_k_p_wkM__=None,           # is the image stack
+# #         index_nCTF_from_nM_=None,   # from CTFs
+# #         CTF_k_p_wkC__=None,         # is the CTFs
+# #         euler_polar_a_M_=None,      # from poses
+# #         euler_azimu_b_M_=None,      # rest from poses
+# #         euler_gamma_z_M_=None,
+# #         image_delta_x_M_=None,
+# #         image_delta_y_M_=None,
+# #         image_I_value_M_=None,
+# # ) -> tuple[Tensor, Tensor, Tensor]:
+# #     # These are supposed to be a_k_Y_yk__, n_quad_from_data_q_, a_k_p_qk__.ravel()
+# #     ...
 
 
-# TODO: Import from appropriate place
-# qbp_uniform_over_n_k_o_r_10()
-def qbp_uniform_over_n_k_p_r_10(
-        qbp_eps=None,               # tolerance
-        n_k_p_r=None,               # from grid
-        k_p_r_=None,                # from grid
-        l_max_=None,                # from spherical harmonics
-        n_w_=None,                  # from grid
-        n_M=None,                   # from image stack
-        M_k_p_wkM__=None,           # is the image stack
-        index_nCTF_from_nM_=None,   # from CTFs
-        CTF_k_p_wkC__=None,         # is the CTFs
-        euler_polar_a_M_=None,      # from poses
-        euler_azimu_b_M_=None,      # rest from poses
-        euler_gamma_z_M_=None,
-        image_delta_x_M_=None,
-        image_delta_y_M_=None,
-        image_I_value_M_=None,
-) -> tuple[Tensor, Tensor, Tensor]:
-    # These are supposed to be a_k_Y_yk__, n_quad_from_data_q_, a_k_p_qk__.ravel()
-    ...
+# # def pm_template_3(
+# #     flag_verbose=None,
+# #     l_max=None,
+# #     n_k=None,
+# #     a_k_Y_yk__=None,
+# #     viewing_euler_k_eq_d=None,
+# #     template_inplane_k_eq_d=None,
+# #     n_w_input=None,
+# #     n_S=None,
+# #     viewing_azimu_b_S_=None,
+# #     viewing_polar_a_S_=None,
+# #     viewing_weight_S_=None,
+# #     n_viewing_polar_a=None,
+# #     viewing_polar_a_=None,
+# #     n_viewing_azimu_b_=None,
+# #     sqrt_2lp1_=None,
+# #     sqrt_2mp1_=None,
+# #     sqrt_rat0_m_=None,
+# #     sqrt_rat3_lm__=None,
+# #     sqrt_rat4_lm__=None,
+# # ) -> tuple[Tensor, int, int, Tensor, Tensor, Tensor, int, Tensor, int, Tensor, Tensor, Tensor, Tensor, Tensor]:
+# #     ...
+# #         # template_wkS___,
+# #         # n_w,
+# #         # n_S,
+# #         # viewing_azimu_b_S_,
+# #         # viewing_polar_a_S_,
+# #         # viewing_weight_S_,
+# #         # n_viewing_polar_a,
+# #         # viewing_polar_a_,
+# #         # n_viewing_azimu_b_,
+# #         # sqrt_2lp1_,
+# #         # sqrt_2mp1_,
+# #         # sqrt_rat0_m_,
+# #         # sqrt_rat3_lm__,
+# #         # sqrt_rat4_lm__,
 
 
-# TODO: Arrange imports of pm_template_3, local_yk__from_yk_
-def pm_template_3(
-    flag_verbose=None,
-    l_max=None,
-    n_k=None,
-    a_k_Y_yk__=None,
-    viewing_euler_k_eq_d=None,
-    template_inplane_k_eq_d=None,
-    n_w_input=None,
-    n_S=None,
-    viewing_azimu_b_S_=None,
-    viewing_polar_a_S_=None,
-    viewing_weight_S_=None,
-    n_viewing_polar_a=None,
-    viewing_polar_a_=None,
-    n_viewing_azimu_b_=None,
-    sqrt_2lp1_=None,
-    sqrt_2mp1_=None,
-    sqrt_rat0_m_=None,
-    sqrt_rat3_lm__=None,
-    sqrt_rat4_lm__=None,
-) -> tuple[Tensor, int, int, Tensor, Tensor, Tensor, int, Tensor, int, Tensor, Tensor, Tensor, Tensor, Tensor]:
-    ...
-        # template_wkS___,
-        # n_w,
-        # n_S,
-        # viewing_azimu_b_S_,
-        # viewing_polar_a_S_,
-        # viewing_weight_S_,
-        # n_viewing_polar_a,
-        # viewing_polar_a_,
-        # n_viewing_azimu_b_,
-        # sqrt_2lp1_,
-        # sqrt_2mp1_,
-        # sqrt_rat0_m_,
-        # sqrt_rat3_lm__,
-        # sqrt_rat4_lm__,
-
-
-# This can probably be brought in-house
-def local_yk__from_yk_(
-    n_k_p_r: int,
-    l_max_: Tensor,
-    tmp_yk_: Tensor,
-) -> tuple[Tensor]:
-    ...
+# # # This can probably be brought in-house
+# # def local_yk__from_yk_(
+# #     n_k_p_r: int,
+# #     l_max_: Tensor,
+# #     tmp_yk_: Tensor,
+# # ) -> tuple[Tensor]:
+# #     ...
 
 ######
 

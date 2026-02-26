@@ -19,7 +19,8 @@ requires-python = ">=3.14"
 dependencies = [
     "numpy>=1.23.5",
     "scipy",
-    "torch>=2.2.0"
+    "torch>=2.2.0",
+    "dir_empm",
 ]
 
 [dependency-groups]
@@ -29,6 +30,8 @@ dev = [
     "pytest-cov>=7.0.0"
 ]
 
+[tool.uv.sources]
+dir_empm = { path = "../dir_empm", editable = true }
 
 [tool.mypy]
 plugins = ["numpy.typing.mypy_plugin"]

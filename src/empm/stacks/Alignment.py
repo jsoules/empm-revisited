@@ -4,6 +4,9 @@ import torch
 from torch import Tensor
 from typing import TYPE_CHECKING
 
+from dir_empm.tfpmh_Z_cluster_wrap_SM__14 import tfpmh_Z_cluster_wrap_SM__14
+from dir_empm.tfpmh_MS_vs_SM_2 import tfpmh_MS_vs_SM_2
+
 # TODO: Maybe this code belongs somewhere else anyway?
 from .CTFCluster import force_isotropy
 
@@ -13,89 +16,86 @@ if TYPE_CHECKING:
     from . import CTFCluster, ImageStack, Poses, Templates, Volume
 
 
+## FYI:
+# # # def tfpmh_Z_cluster_wrap_SM__14(
+# # #         parameter=None,
+# # #         n_k_p_r=None,
+# # #         k_p_r_=None,
+# # #         k_p_r_max=None,
+# # #         n_w_=None,
+# # #         weight_2d_k_p_r_=None,
+# # #         weight_2d_k_p_wk_=None,
+# # #         n_S=None,
+# # #         S_k_p_wkS__=None,
+# # #         n_CTF=None,
+# # #         CTF_k_p_r_kC__=None,
+# # #         index_nCTF_from_nM_=None,
+# # #         n_M=None,
+# # #         M_k_p_wkM__=None,
+# # #         n_cluster=None,
+# # #         index_ncluster_from_nCTF_=None,
+# # #         pm_n_UX_rank_c_=None,
+# # #         pm_UX_knc___=None,
+# # #         pm_X_weight_rc__=None,
+# # #         FTK=None,
+# # #         index_nM_to_update_=torch.tensor([]).to(dtype=torch.int32),
+# # #         M_k_q_wkM__=None,
+# # #         UX_T_M_l2_dM__=None,
+# # #         UX_M_l2_M_=None,
+# # #         svd_V_UX_M_lwnM____=None, #%<-- or UX_T_M_k_q_dwnM____ ;
+# # #         index_nS_to_update_=torch.tensor([]).to(dtype=torch.int32),
+# # #         UX_CTF_S_k_q_wnS__=None,
+# # #         UX_CTF_S_l2_S_=None,
+# # # ) -> tuple[dict, Tensor, Tensor, Tensor, 
+# # #            Tensor, Tensor, Tensor, Tensor, 
+# # #            Tensor, Tensor, Tensor, Tensor, 
+# # #            Tensor, Tensor, Tensor, Tensor ]:
+# # #     #     return(
+# # #     #     parameter,
+# # #     #     Z_SM__,
+# # #     #     UX_CTF_S_l2_SM__,
+# # #     #     UX_T_M_l2_SM__,
+# # #     #     X_SM__,
+# # #     #     delta_x_SM__,
+# # #     #     delta_y_SM__,
+# # #     #     gamma_z_SM__,
+# # #     #     index_sub_SM__,
+# # #     #     index_nM_from_ncluster__,
+# # #     #     n_index_nM_from_ncluster_,
+# # #     #     M_k_q_wkM__,
+# # #     #     UX_T_M_l2_dM__,
+# # #     #     UX_M_l2_M_,
+# # #     #     svd_V_UX_M_lwnM____, #%<-- or UX_T_M_k_q_dwnM____ ;
+# # #     #     UX_CTF_S_k_q_wnS__,
+# # #     # );
+# # #     ...
 
-# TODO: Proper import for tfpmh_Z_cluster_wrap_SM__14
-# sig:
-def tfpmh_Z_cluster_wrap_SM__14(
-        parameter=None,
-        n_k_p_r=None,
-        k_p_r_=None,
-        k_p_r_max=None,
-        n_w_=None,
-        weight_2d_k_p_r_=None,
-        weight_2d_k_p_wk_=None,
-        n_S=None,
-        S_k_p_wkS__=None,
-        n_CTF=None,
-        CTF_k_p_r_kC__=None,
-        index_nCTF_from_nM_=None,
-        n_M=None,
-        M_k_p_wkM__=None,
-        n_cluster=None,
-        index_ncluster_from_nCTF_=None,
-        pm_n_UX_rank_c_=None,
-        pm_UX_knc___=None,
-        pm_X_weight_rc__=None,
-        FTK=None,
-        index_nM_to_update_=torch.tensor([]).to(dtype=torch.int32),
-        M_k_q_wkM__=None,
-        UX_T_M_l2_dM__=None,
-        UX_M_l2_M_=None,
-        svd_V_UX_M_lwnM____=None, #%<-- or UX_T_M_k_q_dwnM____ ;
-        index_nS_to_update_=torch.tensor([]).to(dtype=torch.int32),
-        UX_CTF_S_k_q_wnS__=None,
-        UX_CTF_S_l2_S_=None,
-) -> tuple[dict, Tensor, Tensor, Tensor, 
-           Tensor, Tensor, Tensor, Tensor, 
-           Tensor, Tensor, Tensor, Tensor, 
-           Tensor, Tensor, Tensor, Tensor ]:
-    #     return(
-    #     parameter,
-    #     Z_SM__,
-    #     UX_CTF_S_l2_SM__,
-    #     UX_T_M_l2_SM__,
-    #     X_SM__,
-    #     delta_x_SM__,
-    #     delta_y_SM__,
-    #     gamma_z_SM__,
-    #     index_sub_SM__,
-    #     index_nM_from_ncluster__,
-    #     n_index_nM_from_ncluster_,
-    #     M_k_q_wkM__,
-    #     UX_T_M_l2_dM__,
-    #     UX_M_l2_M_,
-    #     svd_V_UX_M_lwnM____, #%<-- or UX_T_M_k_q_dwnM____ ;
-    #     UX_CTF_S_k_q_wnS__,
-    # );
-    ...
-
-## TODO: Proper import for tfpmh_MS_vs_SM_2
-# declaration:
-def tfpmh_MS_vs_SM_2(
-        parameter =None,
-        n_w_max=None,
-        n_S=None,
-        viewing_azimu_b_S_=None,
-        viewing_polar_a_S_=None,
-        n_M=None,
-        X_SM__=None,
-        delta_x_SM__=None,
-        delta_y_SM__=None,
-        gamma_z_SM__=None,
-        I_value_SM__=None,
-) -> tuple[dict,
-           Tensor, Tensor, Tensor, Tensor,
-           Tensor, Tensor, Tensor, Tensor]:
-        # parameter,
-        # euler_polar_a_M_,
-        # euler_azimu_b_M_,
-        # euler_gamma_z_M_,
-        # image_delta_x_M_,
-        # image_delta_y_M_,
-        # image_I_value_M_,
-        # image_X_value_M_,
-        # image_S_index_M_,
-    ...
+# # # # declaration:
+# # # def tfpmh_MS_vs_SM_2(
+# # #         parameter =None,
+# # #         n_w_max=None,
+# # #         n_S=None,
+# # #         viewing_azimu_b_S_=None,
+# # #         viewing_polar_a_S_=None,
+# # #         n_M=None,
+# # #         X_SM__=None,
+# # #         delta_x_SM__=None,
+# # #         delta_y_SM__=None,
+# # #         gamma_z_SM__=None,
+# # #         I_value_SM__=None,
+# # # ) -> tuple[dict,
+# # #            Tensor, Tensor, Tensor, Tensor,
+# # #            Tensor, Tensor, Tensor, Tensor]:
+# # #         # parameter,
+# # #         # euler_polar_a_M_,
+# # #         # euler_azimu_b_M_,
+# # #         # euler_gamma_z_M_,
+# # #         # image_delta_x_M_,
+# # #         # image_delta_y_M_,
+# # #         # image_I_value_M_,
+# # #         # image_X_value_M_,
+# # #         # image_S_index_M_,
+# # #     ...
 
 
 class _AlignmentScratch():
