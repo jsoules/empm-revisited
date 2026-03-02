@@ -4,6 +4,10 @@ import torch
 from torch import Tensor
 from typing import TYPE_CHECKING
 
+from dir_empm.knn_cluster_CTF_k_p_r_kC__1 import knn_cluster_CTF_k_p_r_kC__1
+from dir_empm.principled_marching_empirical_cost_matrix_2 import principled_marching_empirical_cost_matrix_2
+from dir_empm.principled_marching_cost_matrix_7 import principled_marching_cost_matrix_7
+
 from empm.parameters import MACHINE_TOLERANCE
 
 if TYPE_CHECKING:
@@ -11,55 +15,48 @@ if TYPE_CHECKING:
     from empm.grids import PolarGrid
     from empm.parameters import Parameters
 
-### TODO import knn_cluster_CTF_k_p_r_kC__1 from somewhere reasonable
-## (https://github.com/adirangan/dir_cryoem/blob/main/dir_rangan_python/knn_cluster_CTF_k_p_r_kC__1.py)
-def knn_cluster_CTF_k_p_r_kC__1(
-    parameter=None, # parameter hive
-    n_k_p_r=None,   # grid property
-    k_p_r_=None,    # grid property
-    weight_2d_k_p_r_=None,  # grid property
-    n_CTF=None,     # CTF property
-    CTF_k_p_r_kC__=None,    # alteration of CTF property
-) -> tuple[Parameters, Tensor]:
-    ...
+## FYI
+# # # def knn_cluster_CTF_k_p_r_kC__1(
+# # #     parameter=None, # parameter hive
+# # #     n_k_p_r=None,   # grid property
+# # #     k_p_r_=None,    # grid property
+# # #     weight_2d_k_p_r_=None,  # grid property
+# # #     n_CTF=None,     # CTF property
+# # #     CTF_k_p_r_kC__=None,    # alteration of CTF property
+# # # ) -> tuple[Parameters, Tensor]:
+# # #     ...
 
-### TODO import principled_marching_empirical_cost_matrix_2 from somewhere reasonable
-## (https://github.com/adirangan/dir_cryoem/blob/main/dir_rangan_python/principled_marching_empirical_cost_matrix_2.py)
+# # # def principled_marching_empirical_cost_matrix_2(
+# # #         n_k_p_r=None,           # grid property
+# # #         k_p_r_=None,            # grid property
+# # #         weight_2d_k_p_r_=None,  # grid property
+# # #         n_w_=None,              # grid property
+# # #         n_M=None,               # image stack property
+# # #         M_k_p_wkM__=None,       # image stack
+# # # ) -> tuple[Tensor, Tensor]:
+# # #     ...
 
-def principled_marching_empirical_cost_matrix_2(
-        n_k_p_r=None,           # grid property
-        k_p_r_=None,            # grid property
-        weight_2d_k_p_r_=None,  # grid property
-        n_w_=None,              # grid property
-        n_M=None,               # image stack property
-        M_k_p_wkM__=None,       # image stack
-) -> tuple[Tensor, Tensor]:
-    ...
-
-
-### TODO import principled_marching_cost_matrix_7 from somewhere reasonable
-## (https://github.com/adirangan/dir_cryoem/blob/main/dir_rangan_python/principled_marching_cost_matrix_7.py)
-def principled_marching_cost_matrix_7(
-        n_k_p_r=None,           # grid property
-        k_p_r_=None,            # grid property
-        weight_k_p_r_=None,     # grid property
-        l_max_=None,            # spherical harmonic property
-        n_molecule=None,        # NOT USED FOR THIS CALL PATH
-        molecule_density_=None, # NOT USED FOR THIS CALL PATH
-        a_k_Y_ykv__=None,       # the empirical cost matrix I guess
-        CTF_k_p_r_xcor_kk__=None, # per-cluster averaged something or other
-        delta_sigma=None,       # base translation; float
-        pm_delta_integral_tolerance=None, # not used by us
-) -> tuple[Tensor, Tensor, Tensor, Tensor, float, int, Tensor]:
-        # NOTE: for our purposes we only care about the first 2 returns
-        # X_kk__,
-        # X_weight_r_,
-        # X_ori_kk__,
-        # X_tau_kk__,
-        # weight_so3,
-        # n_m_max,
-        # polar_a_,
-    ...
+# # # def principled_marching_cost_matrix_7(
+# # #         n_k_p_r=None,           # grid property
+# # #         k_p_r_=None,            # grid property
+# # #         weight_k_p_r_=None,     # grid property
+# # #         l_max_=None,            # spherical harmonic property
+# # #         n_molecule=None,        # NOT USED FOR THIS CALL PATH
+# # #         molecule_density_=None, # NOT USED FOR THIS CALL PATH
+# # #         a_k_Y_ykv__=None,       # the empirical cost matrix I guess
+# # #         CTF_k_p_r_xcor_kk__=None, # per-cluster averaged something or other
+# # #         delta_sigma=None,       # base translation; float
+# # #         pm_delta_integral_tolerance=None, # not used by us
+# # # ) -> tuple[Tensor, Tensor, Tensor, Tensor, float, int, Tensor]:
+# # #         # NOTE: for our purposes we only care about the first 2 returns
+# # #         # X_kk__,
+# # #         # X_weight_r_,
+# # #         # X_ori_kk__,
+# # #         # X_tau_kk__,
+# # #         # weight_so3,
+# # #         # n_m_max,
+# # #         # polar_a_,
+# # #     ...
 
 
 def force_isotropy(ctfs: CTF, grid: PolarGrid) -> Tensor:

@@ -4,20 +4,11 @@ import torch
 from torch import Tensor
 from typing import Any, TYPE_CHECKING
 from typing_extensions import Self
+from dir_empm.tfh_FTK_4 import tfh_FTK_4
 
 if TYPE_CHECKING:
     from .PolarGrid import PolarGrid
     from empm.parameters import Parameters
-
-
-# TODO: Proper import for tfh_FTK_4 fn, sig reproduced below
-def tfh_FTK_4(
-    parameter: Parameters,
-    n_k_p_r: int,
-    r8_k_p_r_: Tensor,
-    r8_k_p_r_max: int
-) -> dict:
-    ...
 
 
 # as defined by the values in the object that actually see use,
