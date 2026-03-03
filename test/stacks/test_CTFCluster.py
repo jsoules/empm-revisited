@@ -2,10 +2,9 @@ import torch
 from torch import Tensor
 from torch.testing import assert_close
 from unittest.mock import Mock, patch
-from pytest import raises, mark
+from pytest import raises
 
 from empm.stacks import force_isotropy, CTFCluster
-# from empm.stacks.CTFCluster import _svd_macro
 
 
 def _make_mock_grid(n_angles, n_rings):
@@ -120,6 +119,8 @@ def test_make_cluster_averages():
         assert_close(res.CTF_k_p_r_xavg_kc__, cluster_avgs)
 
 
+## TODO: Move tests to a util tests directory
+# (once we actually have something more useful to check)
 # This suggests that the relationship I saw was spurious.
 # Perhaps because the SVD is not deterministic enough for the
 # transposed and non-transposed versions to line up for larger matrices?

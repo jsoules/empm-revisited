@@ -5,23 +5,12 @@ from torch import Tensor
 from typing import TYPE_CHECKING
 
 from empm.parameters import MACHINE_TOLERANCE
+from empm.util import matlab_style_svd_macro
 
 if TYPE_CHECKING:
     from empm.parameters import Parameters
     from empm.grids import PolarGrid
 
-# NOTE: DUPLICATED CODE FROM CTFCluster.py
-# should be centralized if it's going to keep popping up
-def _svd_macro(m: Tensor, n_svd: int = -1) -> tuple[Tensor, Tensor, Tensor]:
-    if n_svd < 0:
-        n_svd = min(m.shape)
-    _U__, _S_, _V__ = torch.linalg.svd(m.T, full_matrices=False)
-    _U__ = _U__.T
-    # Not sure if this does anything in realistic cases?
-    _U__ = _U__[0:n_svd, :]
-    _S_ = _S_[0:n_svd]
-    _V__ = _V__[0:n_svd, :]
-    return (_U__, _S_, _V__)
 
 class CTF():
     """Class representing a stack of CTFs (contrast transfer functions),
@@ -93,7 +82,7 @@ class CTF():
         
         assert self.CTF_k_p_wkC__.shape == (n_M, grid.n_w_sum)
         max_rank = min(grid.n_w_sum, n_M)
-        _, SCTF_ ,_ = _svd_macro(self.CTF_k_p_wkC__, max_rank)
+        _, SCTF_ ,_ = matlab_style_svd_macro(self.CTF_k_p_wkC__, max_rank)
         # TODO QUERY: Honestly though, if the biggest one isn't over machine tolerance,
         # isn't that its own sort of problem?
         divisor = max(MACHINE_TOLERANCE, SCTF_[0])  # as S is in desc order, the first one is the max
