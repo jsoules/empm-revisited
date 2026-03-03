@@ -9,6 +9,7 @@ from dir_empm.principled_marching_empirical_cost_matrix_2 import principled_marc
 from dir_empm.principled_marching_cost_matrix_7 import principled_marching_cost_matrix_7
 
 from empm.parameters import MACHINE_TOLERANCE
+from empm.util import matlab_style_svd_macro
 
 if TYPE_CHECKING:
     from . import CTF, ImageStack, Volume
@@ -90,29 +91,6 @@ def _force_isotropy(ctfs: Tensor, grid: PolarGrid) -> Tensor:
         raise Exception("Currently unsupported for nonuniform inplane angle counts")
     grid_shape = (-1, grid.n_k_p_r, grid.n_w_max)
     return ctfs.reshape(grid_shape).mean(2)
-
-# I don't know how generalizable this is, but using the example matrix
-#   A = [[3., 2., 2.,], [2., 3., -2.]]
-# tmp_UX_rn__.T of torch.linalg.svd(A.T, full_matrices=False)
-# is just -1 * the V return of torch.linalg.svd(A, full_matrices=False)
-# and tmp_VX_cn__.T is -1 * the U return of (ditto)
-#
-# TODO: Run a lot more examples and see if we can avoid the transposing
-# version while keeping consistency with expected matlab results.
-#
-# In this example, limiting by n_svd doesn't seem to do anything b/c
-# those are already the nonzero singular values, but
-# maybe it's different in the realistic case
-def _svd_macro(m: Tensor, n_svd: int = -1) -> tuple[Tensor, Tensor, Tensor]:
-    if n_svd < 0:
-        n_svd = min(m.shape)
-    _U__, _S_, _V__ = torch.linalg.svd(m.T, full_matrices=False)
-    _U__ = _U__.T
-    # Not sure if this does anything in realistic cases?
-    _U__ = _U__[0:n_svd, :]
-    _S_ = _S_[0:n_svd]
-    _V__ = _V__[0:n_svd, :]
-    return (_U__, _S_, _V__)
 
 
 class CTFCluster():
@@ -234,7 +212,7 @@ class CTFCluster():
             # # tmp_X_kk__ = torch.reshape(pm_X_kkc___[ncluster,:,:], grid_shape)
             # This is already nkpr x nkpr by construction
             tmp_X_kk__ = pm_X_kkc___[ncluster] # no need to include indexing when all dims are full
-            tmp_UX__, tmp_SX_, _ = _svd_macro(tmp_X_kk__, n_UX_rank)
+            tmp_UX__, tmp_SX_, _ = matlab_style_svd_macro(tmp_X_kk__, n_UX_rank)
             # record the pm rank for this to be the count of the SVDs greater than tolerance
             norm_val = max(MACHINE_TOLERANCE, tmp_SX_[0]) # linalg.svd returns S in desc order
             self.pm_n_UX_rank_c_[ncluster] = (tmp_SX_ / norm_val > parameters.tolerance_pm).sum().item()
