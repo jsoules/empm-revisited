@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from inspect import get_annotations
 from typing_extensions import Self
 from typing import Any, TYPE_CHECKING
 import torch
@@ -36,15 +37,15 @@ class Parameters():
     delta_r_upd_threshold: float
 
     # FTK-related
-    r8_delta_r_max: float                   # default whatever delta r max was, or else 0.0
-    r8_svd_eps: float                       # default to whatever svd_eps is
-    r8_delta_x_requested_: torch.Tensor     # default None
-    r8_delta_y_requested_: torch.Tensor     # default None
-    l_max: int                              # default 25
-    n_a_degree: int                         # default 64
-    n_b_degree: int                         # default 65 why not
-    flag_p_vs_c: int                        # default 0
-    flag_tf_vs_bf: int                      # default 1
+    r8_delta_r_max: float               # default to delta r max value, else 0.0
+    r8_svd_eps: float                   # default to whatever svd_eps is
+    r8_delta_x_requested_: Tensor       # default None
+    r8_delta_y_requested_: Tensor       # default None
+    l_max: int                          # default 25
+    n_a_degree: int                     # default 64
+    n_b_degree: int                     # default 65 why not
+    flag_p_vs_c: int                    # default 0
+    flag_tf_vs_bf: int                  # default 1
 
     # Why aren't these bools?
     flag_precompute_M_k_q_wkM__: int
@@ -59,7 +60,6 @@ class Parameters():
     flag_clump_vs_cluster: int
     rank_pm: int
     rank_CTF: int
-
 
 
     def __init__(self, *,
@@ -81,8 +81,8 @@ class Parameters():
         delta_r_upd_threshold: float = 0.0,
         r8_delta_r_max: float = 0.0,
         r8_svd_eps: float = 1e-4,
-        r8_delta_x_requested_: torch.Tensor = torch.zeros(0),
-        r8_delta_y_requested_: torch.Tensor = torch.zeros(0),
+        r8_delta_x_requested_: Tensor = torch.zeros(0),
+        r8_delta_y_requested_: Tensor = torch.zeros(0),
         l_max: int = 25,
         n_a_degree: int = 64,
         n_b_degree: int = 65,
@@ -105,6 +105,7 @@ class Parameters():
         self.n_iteration = n_iteration
         self.tolerance_master = tolerance_master
         self.tolerance_cluster = tolerance_cluster
+        self.tolerance_pm = tolerance_pm
         if tolerance_cluster < 0:
             self.tolerance_cluster = self.tolerance_master
         if tolerance_pm < 0:
@@ -150,12 +151,33 @@ class Parameters():
         self.flag_precompute_UX_CTF_S_l2_S_ = 1
 
 
+    def check_equality(self, other: Self) -> bool:
+        if not isinstance(other, type(self)):
+            return False
+
+        # NOTE: This relies on all members being type-annotated
+        annots = get_annotations(self)
+        for k in annots.keys():
+            try:
+                mine = getattr(self, k)
+                theirs = getattr(other, k)
+                if annots[k] == 'Tensor':
+                    if not torch.all(torch.isclose(mine, theirs)).item():
+                        return False
+                else:
+                    if mine != theirs:
+                        return False
+            except:
+                return False
+
+        return True
+
+
     def set_empirical_ctf_rank(self, ctf: CTF, grid: PolarGrid, imgs: ImageStack):
         if self.rank_CTF > 0:
-            # maybe this is a hard error?
-            print(f"WARNING: Attempt to set empirical CTF rank when a non-negative one was manually set")
+            raise Exception("Attempt to set empirical CTF rank when a non-negative one was manually set")
         rank = ctf.empirically_determine_rank(self, grid, imgs.n_M)
-        self.rank_ctf = rank
+        self.rank_CTF = rank
 
 
     def write_to_file(self):
@@ -208,6 +230,7 @@ class Parameters():
         res['fname_pre'] = self.fname_pre
         res['flag_alternate_MS_vs_SM'] = self.flag_alternate_MS_vs_SM
         res['flag_MS_vs_SM'] = 1    # TODO: this might not be the right thing, gotta look at context
+        res['delta_r_upd_threshold'] = self.delta_r_upd_threshold
 
         res['flag_precompute_M_k_q_wkM__'] = self.flag_precompute_M_k_q_wkM__
         res['flag_precompute_UX_T_M_l2_dM__'] = self.flag_precompute_UX_T_M_l2_dM__
@@ -233,6 +256,32 @@ class Parameters():
         res['rank_pm'] = self.rank_pm
         res['rank_CTF'] = self.rank_CTF
 
+        return res
+
+
+    @classmethod
+    def from_dict(cls, d: dict) -> Self:
+        d_type = d.get('type', 'some_default')
+        if d_type != 'parameter':
+            raise ValueError("Non-parameter dictionary not valid for creating Parameters object.")
+        del d['type']
+        del d['flag_MS_vs_SM']
+
+        # delete the precompute flags as they're all hard-coded right now
+        hard_coded = [
+            "flag_precompute_M_k_q_wkM__",
+            "flag_precompute_UX_T_M_l2_dM__",
+            "flag_precompute_UX_M_l2_M_",
+            "flag_precompute_svd_V_UX_M_lwnM____",
+            "flag_precompute_UX_CTF_S_k_q_wnS__",
+            "flag_precompute_UX_CTF_S_l2_S_",
+        ]
+        for x in hard_coded:
+            del d[x]
+        if d['rseed'] == 0:
+            del d['rseed']
+
+        res = cls(**d)
         return res
 
 
