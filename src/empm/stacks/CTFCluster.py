@@ -198,10 +198,10 @@ class CTFCluster():
         parameters: Parameters,
         grid: PolarGrid,
         images: ImageStack,
-        volume: Volume,
+        volume: Volume | None,
         delta_sigma_base: float = 0.0   # TODO check if could be vector-valued
     ) -> None:
-        if volume.a_k_Y_reco_yk_.numel() == 0:
+        if volume is None or volume.a_k_Y_reco_yk_.numel() == 0:
             pm_X_kkc___ = self._determine_principal_modes_empirically(grid, images)
         else:
             pm_X_kkc___ = self._determine_principal_modes_from_ansatz(grid, volume, delta_sigma_base)
@@ -242,22 +242,6 @@ class CTFCluster():
         X_2d_Memp_d1_weight_rc__ = torch.zeros((self.n_cluster, grid.n_k_p_r), dtype=torch.float32)
 
         for ncluster in range(self.n_cluster):
-            # # # images_this_cluster_ = self.index_nM_from_ncluster__[ncluster]
-            # # # cluster_image_count = images_this_cluster_.numel()
-            # # # tmp_i8_index_rhs_ = matlab_index_2d_0(
-            # # #     grid.n_w_sum,':',
-            # # #     images.n_M,images_this_cluster_)
-            # # # (
-            # # #     X_2d_Memp_d1_kk__,
-            # # #     X_2d_Memp_d1_weight_r_,
-            # # # ) = principled_marching_empirical_cost_matrix_2(
-            # # #     grid.n_k_p_r,
-            # # #     grid.k_p_r_,
-            # # #     grid.weight_2d_k_p_r_,
-            # # #     grid.n_w_,
-            # # #     cluster_image_count,
-            # # #     torch.reshape(images.M_k_p_wkM__.ravel()[tmp_i8_index_rhs_],(cluster_image_count, grid.n_w_sum)),
-            # # # )[:2]
             images_this_cluster__ = images.M_k_p_wkM__[self.index_nM_from_ncluster__[ncluster]]
             cluster_image_count = images_this_cluster__.shape[0]
             (
