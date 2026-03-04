@@ -1,7 +1,6 @@
 import torch
 from torch import Tensor
 
-# TODO fix imports
 # TODO: Might be better to have the constructor allocate based on the grid, and then let
 # others reuse the allocated memory. But the logic for this is pretty deep, I think in
 # sample_shell_6.py, and pulling it out would be nontrivial.
