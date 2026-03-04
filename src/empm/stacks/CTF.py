@@ -44,18 +44,21 @@ class CTF():
 
     # TODO: have I got this right?
     def expand_single_value_isotropic_ctf(self, grid: PolarGrid):
+        """Consumers of the CTFs will assume there is one value per grid point.
+        In the case where the (isotropic) CTF tensors are represented as a single
+        weight value per radial distance, this code will expand those single values
+        to bring the CTF shape in line with the shape of the image tensors. Currently
+        only defined over uniform grids.
+
+        Args:
+            grid (PolarGrid): The desired target grid
+        """
         if not grid.is_uniform:
             # NOTE: Does this work for non-uniform grids?
             # My instrinct is that it would fail for non-uniform...
             pass
         if (self.CTF_k_p_wkC__.shape[-1] == grid.n_k_p_r):
-            # by construction, we are working with a tensor of shape
-            # [n_ctf x n_k_p_r]
-            # This is an isotropic CTF representing each the weight for each
-            # point on each ring as a single value per radial coordinate.
-            # We'd like to expand this so that we materialize the values of the
-            # tensor at each grid point, which means adding a lowest-order (inplane
-            # rotation) dimension and duplicating across it.
+            # [n_ctf x n_k_p_r] --> [n_ctf x (n_k_p_r * n_w)]
             self.CTF_k_p_wkC__ = \
                 torch.reshape(
                     torch.tile(self.CTF_k_p_wkC__[:,:,None], (1, 1, grid.n_w_max)),
@@ -63,9 +66,20 @@ class CTF():
                 )
 
 
-    # NOTE: This is very similar to operations in CTFCluster to
-    # determine per-cluster principal modes (determine_principal_modes)
+    # Note similarity to CTFCluster's determining-principal-modes code.
     def empirically_determine_rank(self, parameter: Parameters, grid: PolarGrid, n_M: int) -> int:
+        """Computes an estimate of the rank of the CTFs, which is used in determining cluster
+        counts.
+
+        Args:
+            parameter (Parameters): Shared Parameters object defining acceptable tolerances
+            grid (PolarGrid): Grid object defining number of grid points per CTF/Image
+            n_M (int): Number of images in the stack (to ensure CTF stack is of the same
+                dimension as the Image stack)
+
+        Returns:
+            int: Estimated rank of the collection of CTFs
+        """
         # Ensure the CTF count matches the image count, i.e. we don't have any unused CTFs
         # floating around in the CTF tensor.
         assert self.CTF_k_p_wkC__.shape == (n_M, grid.n_w_sum)
