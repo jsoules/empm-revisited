@@ -277,7 +277,6 @@ class Alignment():
             templates (Templates): Set of templates
             niter (int): Iteration count (used only for reporting)
         """
-
         self.parameter.reduce_verbosity()
         (
             _,
@@ -292,7 +291,7 @@ class Alignment():
             image_X_value_M_,   # only for reporting
             image_S_index_M_,   # only for reporting
         ) = tfpmh_MS_vs_SM_2(
-            self.parameter.to_dict(),
+            self.parameter.to_dict(niter),  # NOTE: passing niter will prompt computation of flag_ms_vs_sm
             self.grid.n_w_max,
             templates.n_S,
             templates.viewing_azimu_b_S_,
@@ -307,7 +306,7 @@ class Alignment():
 
 
         if (self.parameter.flag_save_stage > 2):
-            self._checkpoint_pose_update(image_X_value_M_, image_S_index_M_, niter)
+            self._checkpoint_pose_update(image_X_value_M_, image_S_index_M_, niter, ms_vs_sm = self.parameter.get_ms_vs_sm(niter))
 
 
     def _checkpoint_post_alignment(self,
@@ -357,8 +356,10 @@ class Alignment():
         image_X_value_M_: Tensor,
         image_S_index_M_: Tensor,
         niteration: int,
+        ms_vs_sm: bool
     ):
         self.parameter.save_report(f"_stage_10_{niteration}.mat", data = {
+            "flag_MS_vs_SM": 1 if ms_vs_sm else 0,
             "euler_polar_a_M_": self.poses.euler_polar_a_M_,
             "euler_azimu_b_M_": self.poses.euler_azimu_b_M_,
             "euler_gamma_z_M_": self.poses.euler_gamma_z_M_,

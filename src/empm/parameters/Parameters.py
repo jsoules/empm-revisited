@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from inspect import get_annotations
+from math import floor
 from typing_extensions import Self
 from typing import Any, TYPE_CHECKING
 import torch
@@ -18,6 +19,99 @@ if TYPE_CHECKING:
 MACHINE_TOLERANCE = 1e-6
 
 class Parameters():
+    """Centralized collection for all configuration parameters for EMPM. Ideally
+    should be largely immutable, with a few exceptions.
+
+    Attributes:
+        flag_verbose (int): Controls the verbosity of logging
+        stored_verbosity (int): Internal. Allows returning to prior
+            verbosity level when it is temporarily adjusted.
+        n_iteration (int): Maximum iterations to run for EMPM. Defaults to 32.
+        tolerance_master (float): Default tolerance for computations when more
+            specific tolerances are not set. Defaults to 1e-2.
+        tolerance_cluster (float): Tolerance for CTF-clustering algorithm.
+            Defaults to tolerance_master.
+        tolerance_pm (float): Tolerance used in computing principal modes.
+            Defaults to tolerance_master.
+        flag_gpu (int): Whether to attempt using GPU (defaults to 0/False)
+        rseed (int | None): If set, will provide a random seed. TODO:
+            Ensure this is only seeded once!
+        order_limit_MS (int): ?? Defaults to -1.
+        delta_r_max (float): Maximum accumulation value for pose alignment discovery.
+            When updating poses, displacement values are allowed to accumulate up to
+            this value without recomputing the principal-mode representation of the
+            images; if the accumulated displacement exceeds this amount, the accumulated
+            displacement buffer is transferred to the main displacement amount and the
+            PM representations of the images are re-computed. Defaults to 0.0, in which
+            case the image representations will be recomputed every pass.
+        delta_r_upb (float): Maximum total allowable accumulation value for Image
+            displacement. Pose estimation will not accept further displacements
+            beyond this value. Defaults to twice the max per-iteration value.
+        delta_r_upd_threshold (float): Threshold beyond which displacement accumulation
+            will be transferred to the main displacement from the intermediate
+            displacement accumulator. TODO: Better explanation. Defaults to 0.0.
+        n_delta_v_requested (int): ??? Used in FTK.
+        template_viewing_k_eq_d (float): Angular difference between any two
+            grid points on the quadrature grid, measured at the equator. Defaults
+            to 1/the highest frequency of the Fourier-space representation
+            (k_p_r_max).
+            TODO: NEED ACCESS TO K_P_R_MAX
+        flag_save_stage (int): Controls which operations will write log files
+            (default 0)
+        fname_pre (str): Prefix for log-file filenames (default to '')
+        flag_alternate_MS_vs_SM (int): Controls the pattern of image-template
+            best-fit assignments. During EMPM, on each cycle, a match must be
+            made so that each image is assigned to one template. This can be
+            done by assigning the image to the template that best matches it,
+            but with unfavorable initial conditions, this may result in some templates
+            being starved (with no assigned image) while others are over-represented
+            (with many images assigned). Alternatively, one can assign each template
+            the image that fits it best (even if that image would be a better fit for
+            other templates), ensuring that there is data to adjust every template.
+            If this flag is set nonzero, the EMPM algorithm will alternate between
+            image-first assignments and template-first assignments on every iteration.
+            If it is set to 0, the algorithm will do image-first alignment for the
+            first half of its iterations and template-first alignment for the latter
+            half. Defaults to 1 (alternating each iteration).
+
+        r8_delta_r_max (float): Maximum displcement of individual images used in FTK.
+            Defaults to value set for delta_r_max. (FTK)
+        r8_svd_eps (float): Lower bound tolerance for SVD magnitude used in FTK.
+            Defaults to value set for svd_eps. (FTK)
+        r8_delta_x_requested_ (Tensor): Array of (per-image?) x-displacements
+            requested for FTK. (FTK)
+        r8_delta_y_requested_ (Tensor): Array of (per-image?) y-displacements
+            requested for FTK. (FTK)
+        l_max (int): ?? for FTK. Defaults to 25. (FTK)
+        n_a_degree (int): ?? for FTK. Defaults to 64. (FTK)
+        n_b_degree (int): ?? for FTK. Defaults to 65. (FTK)
+        flag_p_vs_c (int): ?? for FTK. Defaults to 0. (FTK)
+        flag_tf_vs_bf (int): ?? for FTK. Defaults to 1. (FTK)
+
+        flag_precompute_M_k_q_wkM__ (int): Internal. If nonzero, precompute
+            ??. Currently hard-coded to 1.
+        flag_precompute_UX_T_M_l2_dM__ (int): Internal. If nonzero, precompute
+            ??. Currently hard-coded to 1.
+        flag_precompute_UX_M_l2_M_ (int): Internal. If nonzero, precompute
+            ??. Currently hard-coded to 1.
+        flag_precompute_svd_V_UX_M_lwnM____ (int): Internal. If nonzero, precompute
+            ??. Currently hard-coded to 1.
+        flag_precompute_UX_CTF_S_k_q_wnS__ (int): Internal. If nonzero, precompute
+            ??. Currently hard-coded to 1.
+        flag_precompute_UX_CTF_S_l2_S_ (int): Internal. If nonzero, precompute
+            ??. Currently hard-coded to 1.
+
+        flag_rank_vs_tolerance (int): Controls clustering behavior in clustering
+            CTFs (?)  Defaults to 0.
+        flag_clump_vs_cluster (int): Controls behavior in computing CTF clusters
+            (?). Defaults to the value of flag_rank_vs_tolerance.
+        rank_pm (int): Rank/number of principal modes to use for principal-modes
+            representation of translation matrix (?). Defaults to 10.
+        rank_CTF (int): Expected rank of overall CTF matrix, which affects
+            CTF clustering. If negative (the default), will attempt to determine
+            empirically through SVD.
+    """
+
     flag_verbose: int
     stored_verbosity: int
     n_iteration: int
@@ -29,23 +123,23 @@ class Parameters():
     order_limit_MS: int
     delta_r_max: float
     delta_r_upb: float
+    delta_r_upd_threshold: float
     n_delta_v_requested: int
     template_viewing_k_eq_d: float
     flag_save_stage: int
     fname_pre: str
     flag_alternate_MS_vs_SM: int
-    delta_r_upd_threshold: float
 
     # FTK-related
-    r8_delta_r_max: float               # default to delta r max value, else 0.0
-    r8_svd_eps: float                   # default to whatever svd_eps is
-    r8_delta_x_requested_: Tensor       # default None
-    r8_delta_y_requested_: Tensor       # default None
-    l_max: int                          # default 25
-    n_a_degree: int                     # default 64
-    n_b_degree: int                     # default 65 why not
-    flag_p_vs_c: int                    # default 0
-    flag_tf_vs_bf: int                  # default 1
+    r8_delta_r_max: float
+    r8_svd_eps: float
+    r8_delta_x_requested_: Tensor
+    r8_delta_y_requested_: Tensor
+    l_max: int
+    n_a_degree: int
+    n_b_degree: int
+    flag_p_vs_c: int
+    flag_tf_vs_bf: int
 
     # Why aren't these bools?
     flag_precompute_M_k_q_wkM__: int
@@ -73,12 +167,12 @@ class Parameters():
         order_limit_MS: int = -1,
         delta_r_max: float = 0.1,
         delta_r_upb: float = -1.,
+        delta_r_upd_threshold: float = 0.0,
         n_delta_v_requested: int = 0,
         template_viewing_k_eq_d: float = -1.,
         flag_save_stage: int = 0,
         fname_pre: str = '',
         flag_alternate_MS_vs_SM: int = 1,
-        delta_r_upd_threshold: float = 0.0,
         r8_delta_r_max: float = 0.0,
         r8_svd_eps: float = 1e-4,
         r8_delta_x_requested_: Tensor = torch.zeros(0),
@@ -115,12 +209,12 @@ class Parameters():
         self.order_limit_MS = order_limit_MS
         self.delta_r_max = delta_r_max
         self.delta_r_upb = delta_r_upb
+        self.delta_r_upd_threshold = delta_r_upd_threshold
         self.n_delta_v_requested = n_delta_v_requested
         self.template_viewing_k_eq_d = template_viewing_k_eq_d
         self.flag_save_stage = flag_save_stage
         self.fname_pre = fname_pre
         self.flag_alternate_MS_vs_SM = flag_alternate_MS_vs_SM
-        self.delta_r_upd_threshold = delta_r_upd_threshold
 
         # FTK-related
         self.r8_delta_r_max = r8_delta_r_max
@@ -173,6 +267,12 @@ class Parameters():
         return True
 
 
+    def get_ms_vs_sm(self, n_iteration: int = 0) -> bool:
+        if self.flag_alternate_MS_vs_SM != 0:
+            return n_iteration % 2 == 0
+        return n_iteration < floor(self.n_iteration / 2)
+
+
     def set_empirical_ctf_rank(self, ctf: CTF, grid: PolarGrid, imgs: ImageStack):
         if self.rank_CTF > 0:
             raise Exception("Attempt to set empirical CTF rank when a non-negative one was manually set")
@@ -211,7 +311,7 @@ class Parameters():
         matlab_save(fname, data)
 
 
-    def to_dict(self) -> dict:
+    def to_dict(self, n_iter: int = 0) -> dict:
         res = {}
         res['type'] = 'parameter'
         res['flag_verbose'] = self.flag_verbose
@@ -224,13 +324,13 @@ class Parameters():
         res['order_limit_MS'] = self.order_limit_MS
         res['delta_r_max'] = self.delta_r_max
         res['delta_r_upb'] = self.delta_r_upb
+        res['delta_r_upd_threshold'] = self.delta_r_upd_threshold
         res['n_delta_v_requested'] = self.n_delta_v_requested
         res['template_viewing_k_eq_d'] = self.template_viewing_k_eq_d
         res['flag_save_stage'] = self.flag_save_stage
         res['fname_pre'] = self.fname_pre
         res['flag_alternate_MS_vs_SM'] = self.flag_alternate_MS_vs_SM
-        res['flag_MS_vs_SM'] = 1    # TODO: this might not be the right thing, gotta look at context
-        res['delta_r_upd_threshold'] = self.delta_r_upd_threshold
+        res['flag_MS_vs_SM'] = 1 if self.get_ms_vs_sm(n_iter) else 0
 
         res['flag_precompute_M_k_q_wkM__'] = self.flag_precompute_M_k_q_wkM__
         res['flag_precompute_UX_T_M_l2_dM__'] = self.flag_precompute_UX_T_M_l2_dM__
