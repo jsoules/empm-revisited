@@ -1,6 +1,7 @@
 import torch
 from torch import Tensor
 from math import floor
+from typing import Callable
 
 from .parameters import Parameters, MACHINE_TOLERANCE
 from .grids import PolarGrid, FTK
@@ -28,8 +29,6 @@ def execute_empm(       # replaces tfpmut_6
 ):
     parameter.print_per_verbosity(f' %% [entering execute_empm, former tfpmut_6]')
     ctf_cluster.make_cluster_averages(grid) # should be pleonastic--it's called during cluster construction
-    flag_MS_vs_SM: bool = False
-    half_iterations = floor(parameter.n_iteration / 2)
     M_pert_k_p_wkM__ = None
 
     if ftk is None:
@@ -46,19 +45,12 @@ def execute_empm(       # replaces tfpmut_6
     if parameter.flag_save_stage > 2:
         _checkpoint_preloop(parameter, grid, volume, ctf_cluster, poses, ftk)
 
-    # if flag_alternate_MS_vs_SM == 0, we do MS fitting for the first half of the iterations
-    # and SM fitting for the rest. Otherwise, alternate every time, starting with MS.
-    l_alternate = lambda niter: niter < half_iterations
-    if parameter.flag_alternate_MS_vs_SM != 0:
-        l_alternate = lambda niter: niter % 2 == 0
-
     for niteration in range(parameter.n_iteration):
         parameter.print_per_verbosity(f" %% niteration {niteration:.2d}/{parameter.n_iteration:.2d}")
-        flag_MS_vs_SM = l_alternate(niteration)
 
         M_pert_k_p_wkM__ = image_stack.apply_displacements_from_poses(grid, poses, M_pert_k_p_wkM__)
         if parameter.flag_save_stage > 2:
-            _checkpoint_iteration_displacement(parameter, niteration, poses, image_stack, M_pert_k_p_wkM__, flag_MS_vs_SM)
+            _checkpoint_iteration_displacement(parameter, niteration, poses, image_stack, M_pert_k_p_wkM__)
 
         volume.reconstruct_volume(parameter, grid, image_stack, poses, ctf_cluster, weight_3d_k_p_r_, niteration)
         templates = volume.generate_templates(parameter, grid, niteration)
@@ -71,7 +63,6 @@ def execute_empm(       # replaces tfpmut_6
 
     parameter.print_per_verbosity(f' %% [finished execute_empm, former tfpmut_6]')
 
-    # TODO: Probably should return the volume object
     return (volume, poses)
 
 
@@ -127,11 +118,9 @@ def _checkpoint_iteration_displacement(
     poses: Poses,
     image_stack: ImageStack,
     M_pert_k_p_wkM__: Tensor,
-    flag_MS_vs_SM: bool
 ):
     parameter.save_report(f"_stage_5_{niteration}.mat", data = {
                 "index_nM_to_update_": torch.where(poses.flag_image_delta_upd_M_)[0],
-                "flag_MS_vs_SM": flag_MS_vs_SM,
                 "M_pert_k_p_wkM__": M_pert_k_p_wkM__,
                 "M_orig_k_p_wkM__": image_stack.M_k_p_wkM__,
                 "image_delta_x_acc_M_": poses.image_delta_x_acc_M_,
@@ -151,22 +140,5 @@ def _checkpoint_disp_update(
         "image_delta_y_acc_M_": poses.image_delta_y_acc_M_,
         "image_delta_x_upd_M_": poses.image_delta_x_upd_M_,
         "image_delta_y_upd_M_": poses.image_delta_y_upd_M_,
-        # Former values: note most of these are either intermediate or
-        # no longer used in the computation. For the intermediate
-        # ones we could apply instrumentation to the function on the
-        # Poses class itself if needed.
-        # "image_delta_x_tot_M_": image_delta_x_tot_M_,
-        # "image_delta_y_tot_M_": image_delta_y_tot_M_,
-        # "image_delta_r_tot_M_": image_delta_r_tot_M_,
-        # "image_delta_x_nrm_M_": image_delta_x_nrm_M_,
-        # "image_delta_y_nrm_M_": image_delta_y_nrm_M_,
-        # "tmp_index_":tmp_index_,
-        # "flag_image_delta_upd_M_":flag_image_delta_upd_M_,
-        # "image_delta_r_upd_prenorm_M_":image_delta_r_upd_prenorm_M_,
-        # "image_delta_r_upd_posnorm_M_":image_delta_r_upd_posnorm_M_,
-        # "image_delta_x_acc_M_":image_delta_x_acc_M_,
-        # "image_delta_y_acc_M_":image_delta_y_acc_M_,
-        # "image_delta_x_upd_M_":image_delta_x_upd_M_,
-        # "image_delta_y_upd_M_":image_delta_y_upd_M_,
     })
 

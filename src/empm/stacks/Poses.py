@@ -55,6 +55,7 @@ class Poses():
     flag_image_delta_upd_M_: Tensor
     image_I_value_M_: Tensor
 
+
     def __init__(self,
         n_imgs: int = -1,
         *,
@@ -99,11 +100,11 @@ class Poses():
         self.image_delta_y_acc_M_ = image_delta_y_acc_M_.to(torch.float32)
         self.image_delta_x_upd_M_ = image_delta_x_upd_M_.to(torch.float32)
         self.image_delta_y_upd_M_ = image_delta_y_upd_M_.to(torch.float32)
-        self.image_I_value_M_ = image_I_value_M_.to(torch.float32)
-        self.flag_image_delta_upd_M_ = flag_image_delta_upd_M_.to(torch.int32)
-
         self.image_delta_x_bit_M_ = torch.zeros(empirical_n_imgs, dtype=torch.float32)
         self.image_delta_y_bit_M_ = torch.zeros(empirical_n_imgs, dtype=torch.float32)
+
+        self.image_I_value_M_ = image_I_value_M_.to(torch.float32)
+        self.flag_image_delta_upd_M_ = flag_image_delta_upd_M_.to(torch.int32)
 
 
     @classmethod
@@ -148,21 +149,23 @@ class Poses():
             image_delta_r_upd_norm_M_, dtype=torch.int32
         ).scatter_(0, torch.where(image_delta_r_upd_norm_M_ >= parameter.delta_r_upd_threshold)[0], 1)
         soft_upper_bound_mask *= not_upper_bounded
+        all_changed_mask = hard_upper_bound_mask + soft_upper_bound_mask
 
         # if there are any indices whose final value, acc + upd, exceeds the max allowable,
         # handle them here
         if torch.any(hard_upper_bound_mask > 0):
-            compression_factor = parameter.delta_r_upb / torch.maximum(image_delta_r_tot_M_, torch.tensor(machine_tolerance))
-            # vector of 1s for non-compressed indices and (ratios) for indices to be compressed
-            # (adding back the not_upper_bounded sets 0ed indices to 1)
-            final_compression = compression_factor * hard_upper_bound_mask + not_upper_bounded
-            self.image_delta_x_acc_M_ *= final_compression
-            self.image_delta_y_acc_M_ *= final_compression
+            # This is pre-filtered to apply only to the 
+            compression_factor = (parameter.delta_r_upb / torch.maximum(image_delta_r_tot_M_, torch.tensor(machine_tolerance))) * hard_upper_bound_mask
+            # zero out the upper-bounded items
+            self.image_delta_x_acc_M_ *= not_upper_bounded
+            self.image_delta_y_acc_M_ *= not_upper_bounded
+            # then add back in the normalized totals
+            self.image_delta_x_acc_M_ += compression_factor * image_delta_x_tot_M_
+            self.image_delta_y_acc_M_ += compression_factor * image_delta_y_tot_M_
         
         self.image_delta_x_acc_M_ += self.image_delta_x_upd_M_ * soft_upper_bound_mask
         self.image_delta_y_acc_M_ += self.image_delta_y_upd_M_ * soft_upper_bound_mask
 
-        all_changed_mask = hard_upper_bound_mask + soft_upper_bound_mask
         self.flag_image_delta_upd_M_ = all_changed_mask.to(torch.int32)
         # zero out all the bits, and the upds which participated in an acc update
         self.image_delta_x_upd_M_ *= torch.logical_not(all_changed_mask)
