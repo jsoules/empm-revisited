@@ -12,25 +12,30 @@ class ImageStack():
     n_M: int
     M_k_p_wkM__: Tensor
 
-    def __init__(self):
-        raise NotImplementedError()
-    
+    def __init__(self,
+        M_k_p_wkM__: Tensor
+    ):
+        # TODO: any sort of consistency check
+        # TODO: Something about loading functionality?
+        self.M_k_p_wkM__ = M_k_p_wkM__
+        self.n_M = M_k_p_wkM__.shape[0]
+
+
     def apply_displacements_from_poses(self, grid: PolarGrid, poses: Poses, scratch: Tensor | None = None) -> Tensor:
         if scratch is None:
             scratch = torch.ones_like(self.M_k_p_wkM__, dtype=torch.complex64)
         
-        # TODO: Confirm delta-x and delta-y are same size (that check would belong in the Poses class)
         if grid.is_uniform:
             L_c_wkv__ = \
                 grid.k_c_0_wk_ * poses.image_delta_x_acc_M_[:, None] \
                 + grid.k_c_1_wk_ * poses.image_delta_y_acc_M_[:, None]
             ## ADDITION: Restricts to affected images by zeroing out non-flagged elements
-            L_c_wkv__ = L_c_wkv__ * poses.flag_image_delta_upd_M_[:, None]
+            L_c_wkv__ *= poses.flag_image_delta_upd_M_[:, None]
             C_c_wkv__ = torch.exp(-1j * 2 * torch.pi * L_c_wkv__).to(dtype=torch.complex64)
             # NOTE: CONFIRM: that self.M_k_p_wkM__ is already image_idx x flat_points
             torch.mul(C_c_wkv__, self.M_k_p_wkM__, out=scratch)
-            # TODO: check with assert whether this is necessary
-            scratch = scratch.to(torch.complex64)
+            # TODO: Check if this is necessary
+            assert scratch.dtype == torch.complex64
             return scratch
 
         else:
