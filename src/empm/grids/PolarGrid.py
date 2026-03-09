@@ -5,6 +5,7 @@ from typing import Self  # note this requires python >= 3.11;
 # from typing_extensions import Self
 
 from dir_empm.get_weight_2d_2 import get_weight_2d_2
+from empm.util import zero_initial_csum
 
 # # # def get_weight_2d_2(
 # # #         flag_verbose: int = 0,
@@ -127,9 +128,7 @@ class PolarGrid():
 
         self.n_w_sum = int(torch.sum(self.n_w_).item())
         self.n_w_max = int(torch.max(n_w_).item())
-        self.n_w_csum_ = torch.cumsum(
-            torch.concatenate((torch.tensor([0]), self.n_w_)), 0
-        ).to(torch.int32)
+        self.n_w_csum_ = zero_initial_csum(self.n_w_)
         if is_uniform:
             assert len(torch.unique(self.n_w_)) == 1
             assert self.n_w_max % 2 == 0, "Odd number of inplane rotations for grid"
