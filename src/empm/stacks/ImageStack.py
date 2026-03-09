@@ -17,7 +17,7 @@ class ImageStack():
     ):
         # TODO: any sort of consistency check
         # TODO: Something about loading functionality?
-        self.M_k_p_wkM__ = M_k_p_wkM__
+        self.M_k_p_wkM__ = M_k_p_wkM__.to(torch.complex64)
         self.n_M = M_k_p_wkM__.shape[0]
 
 
@@ -34,8 +34,6 @@ class ImageStack():
             C_c_wkv__ = torch.exp(-1j * 2 * torch.pi * L_c_wkv__).to(dtype=torch.complex64)
             # NOTE: CONFIRM: that self.M_k_p_wkM__ is already image_idx x flat_points
             torch.mul(C_c_wkv__, self.M_k_p_wkM__, out=scratch)
-            # TODO: Check if this is necessary
-            assert scratch.dtype == torch.complex64
             return scratch
 
         else:
