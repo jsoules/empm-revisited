@@ -118,7 +118,6 @@ class Volume():
         self.n_y_ = (l_max_+1) ** 2
         self.n_y_max = int(torch.max(self.n_y_).item())
         self.n_y_sum = int(torch.sum(self.n_y_).item())
-        # TODO: Use macro for this
         self.n_y_csum_ = zero_initial_csum(self.n_y_)
         self.a_k_Y_reco_yk_ = torch.zeros(1, dtype=torch.complex64)
 
