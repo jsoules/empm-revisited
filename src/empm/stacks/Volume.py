@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 import torch
 from torch import Tensor
-from math import sqrt
 
 from dir_empm.qbp_uniform_over_n_k_p_r_10 import qbp_uniform_over_n_k_p_r_10
 from dir_empm.pm_template_3 import pm_template_3
@@ -131,7 +130,7 @@ class Volume():
         weight_3d_k_p_r_: Tensor,       # TODO: can we link this to the spherical harmonic object?
         niteration: int
     ):
-                #% use current euler-angles and displacements to solve for current model. ;
+        # "use current euler-angles and displacements to solve for current model."
         qbp_eps = parameter.tolerance_master
         self.a_k_Y_reco_yk_ = qbp_uniform_over_n_k_p_r_10(
             qbp_eps,
@@ -154,48 +153,24 @@ class Volume():
         if (parameter.flag_save_stage > 2):
             _checkpoint_iteration_model(parameter, niteration, True, self.a_k_Y_reco_yk_)
 
-        # TODO: Push this to the spherical harmonics object
         #% Normalize a_k_Y_reco_yk_ to prevent the intensity from diverging over successive iterations
-        self._spharm_normalize(grid, weight_3d_k_p_r_)
+        self._spharm_normalize(weight_3d_k_p_r_)
 
         if (parameter.flag_save_stage>2):
             _checkpoint_iteration_model(parameter, niteration, False, self.a_k_Y_reco_yk_)
 
 
-    # Imported from spharm_normalize_1,
-    # could leave that separate depending on the larger context
     def _spharm_normalize(self,
-        grid: PolarGrid,
         weight_3d_k_p_r_: Tensor,  # TODO put on this object etc
-    ) -> tuple[float, float, Tensor]:
+    ) -> None:
         # Normalizes the spherical-harmonic expansion to have norm 1, but does not center.
         # expand the per-ring weights to the number of y-elements in each radial ring.
         weight_Y_val_ = weight_3d_k_p_r_.repeat_interleave(self.n_y_)
-        # this creates a vector of 0s of length equal to the number of y-points,
-        # then sets a 1 at every index where the radial dimension changes
-        e_k_Y_ = torch.zeros(self.n_y_sum, dtype=torch.float32
-                            ).scatter_(0, grid.n_w_csum_.to(torch.int64)[:-1], 1.)
 
-        # TODO QUERY: why the conj when we know we just set these to real 0s and 1s?
-        # Also, isn't this equivalent to dividing weight_3d_k_p_r_ by grid.n_w_?
-        # or, wait... it's even simpler, isn't this just weight_3d over total grid points?
-        e_avg = torch.sum(torch.conj(e_k_Y_) * weight_Y_val_ * e_k_Y_)
-        norm_constant = max(1e-12, sqrt(e_avg.item()))
-        u_k_Y_ = e_k_Y_ / norm_constant
-
-        a_avg = torch.sum(torch.conj(u_k_Y_) * weight_Y_val_ * self.a_k_Y_reco_yk_).item()
-        # TODO QUERY: This is a no-op due to order-of-operations. Is this intentional?
-        # a_k_Y_norm_ = (self.a_k_Y_reco_yk_ - 0.0 * a_avg * u_k_Y_) #%<-- do not center.
-        a_k_Y_norm_ = self.a_k_Y_reco_yk_
-        a_std = sqrt(torch.sum(torch.conj(a_k_Y_norm_) * weight_Y_val_ * a_k_Y_norm_).item())
-        denom = max(1e-12, a_std)
-        self.a_k_Y_reco_yk_ = a_k_Y_norm_ / denom
-        
-        return(
-            a_avg,
-            a_std,
-            u_k_Y_,
-        )
+        a_k_Y_ = self.a_k_Y_reco_yk_
+        a_std = torch.sqrt(torch.sum(torch.conj(a_k_Y_) * weight_Y_val_ * a_k_Y_)).item()
+        denom = max(1e-12, a_std.real)
+        self.a_k_Y_reco_yk_ = a_k_Y_ / denom
     
 
     def generate_templates(self,
