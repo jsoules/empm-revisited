@@ -89,6 +89,10 @@ def force_isotropy(ctfs: CTF, grid: PolarGrid) -> Tensor:
 def _force_isotropy(ctfs: Tensor, grid: PolarGrid) -> Tensor:
     if not grid.is_uniform:
         raise Exception("Currently unsupported for nonuniform inplane angle counts")
+    curr_shape = ctfs.shape
+    if (len(curr_shape) == 2 and curr_shape[-1] == grid.n_k_p_r) or curr_shape[-1] == 1:
+        # already isotropic
+        return ctfs#.reshape(-1, grid.n_k_p_r, 1)
     grid_shape = (-1, grid.n_k_p_r, grid.n_w_max)
     return ctfs.reshape(grid_shape).mean(2)
 
@@ -168,7 +172,7 @@ class CTFCluster():
         )
         
         self.index_ncluster_from_nCTF_ = index_ncluster_from_nCTF_
-        self.n_cluster = 1 + int(torch.max(self.index_ncluster_from_nCTF_).item())
+        self.n_cluster = 1 + int(torch.max(self.index_ncluster_from_nCTF_))
         self.index_ncluster_from_nM_ = \
             self.index_ncluster_from_nCTF_[ctfs.index_nCTF_from_nM_]
         self.index_nM_from_ncluster__ = []
@@ -267,16 +271,14 @@ class CTFCluster():
     def _determine_principal_modes_from_ansatz(self,
         grid: PolarGrid,
         volume: Volume,
-        delta_sigma_base: float = 0.0   # this might also be vector-valued?
+        delta_sigma_base: float = 0.0,   # this might also be vector-valued?,
     ) -> Tensor:
             matrix_shape = (self.n_cluster, grid.n_k_p_r, grid.n_k_p_r)
             X_2d_xavg_dx_kkc___ = torch.zeros(matrix_shape, dtype=torch.float32)
             X_2d_xavg_dx_weight_rc__ = torch.zeros((self.n_cluster, grid.n_k_p_r), dtype=torch.float32)
             for ncluster in range(self.n_cluster):
-                # tmp_CTF_k_p_r_xavg_kk__ = torch.reshape(tmp_CTF_k_p_r_xavg_k_, (1, grid.n_k_p_r)) * torch.reshape(tmp_CTF_k_p_r_xavg_k_, (grid.n_k_p_r, 1))
                 isotropic_avg_ctf = self.CTF_k_p_r_xavg_kc__[ncluster]
                 tmp_CTF_k_p_r_xavg_kk__ = isotropic_avg_ctf[None, :] * isotropic_avg_ctf[:, None]
-
                 (
                     X_2d_xavg_dx_kk__,
                     X_2d_xavg_dx_weight_r_,
@@ -330,7 +332,9 @@ class CTFCluster():
         # # # weight_sums_per_cluster = torch.mm(one_hot, self.ctfs.CTF_k_p_wkC__)
         num_classes = self.n_cluster
         one_hot = torch.nn.functional.one_hot(self.index_ncluster_from_nCTF_, num_classes=num_classes).T.to(torch.float32)
-        weight_sums_per_cluster = (one_hot @ torch.permute(self.ctfs.CTF_k_p_wkC__, (2, 0, 1))).permute(1, 2, 0)
+        ## This was only needed when ctfs were *not* linearized
+        # weight_sums_per_cluster = (one_hot @ torch.permute(self.ctfs.CTF_k_p_wkC__, (2, 0, 1))).permute(1, 2, 0)
+        weight_sums_per_cluster = (one_hot @ self.ctfs.CTF_k_p_wkC__)
         isotropic = _force_isotropy(weight_sums_per_cluster, grid)
         # Result is clusters x radii (we averaged over the inplanes)
         # divide by per-cluster CTF count, to finish the averaging.

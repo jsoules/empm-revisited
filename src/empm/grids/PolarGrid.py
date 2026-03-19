@@ -99,11 +99,13 @@ class PolarGrid():
     n_w_csum_: Tensor
 
 
+    # TODO: Rewrite to allow computation of these values if not explicitly stated
+    # e.g. n_k_p_r must be len(k_p_r_) or it doesn't make sense, etc.
     def __init__(self,
         is_uniform: bool,
         n_k_p_r: int,
         k_p_r_: Tensor,
-        k_p_r_max: int,
+        k_p_r_max: int | None,
         template_k_eq_d: float,
         n_w_: Tensor,
         weight_2d_k_p_r_: Tensor,
@@ -116,7 +118,10 @@ class PolarGrid():
         self.is_uniform = is_uniform
         self.n_k_p_r = n_k_p_r
         self.k_p_r_ = k_p_r_
-        self.k_p_r_max = k_p_r_max
+        if k_p_r_max is not None:
+            self.k_p_r_max = k_p_r_max
+        else:
+            self.k_p_r_max = int(torch.max(k_p_r_))
         self.template_k_eq_d = template_k_eq_d
         self.n_w_ = n_w_.ravel()    # ensure 1D
         self.weight_2d_k_p_r_ = weight_2d_k_p_r_
