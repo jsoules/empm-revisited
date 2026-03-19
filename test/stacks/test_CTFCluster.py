@@ -90,7 +90,6 @@ def test_make_cluster_averages():
     cluster_3_avg = (isos[0] * 9.)
     cluster_avgs = torch.stack((cluster_0_avg, cluster_1_avg, cluster_2_avg, cluster_3_avg))
 
-    # weighted_ctfs = ctfs * ctf_multipliers[:, None, None]
     weighted_ctfs = ctfs * ctf_multipliers[:, None]
     weighted_ctfs = weighted_ctfs.reshape((n_ctfs, -1))
     mock_ctfs = _make_mock_ctf(weighted_ctfs)
