@@ -185,7 +185,7 @@ class CTFCluster():
             self.n_index_nM_from_ncluster_[ncluster] = int(img_indices.numel())
         # allocate space for principal-mode matrices
         self.pm_n_UX_rank_c_ = torch.zeros((self.n_cluster), dtype=torch.int32)
-        self.pm_UX_knc___ = torch.zeros((self.n_cluster, grid.n_k_p_r - 1), dtype=torch.float32)
+        self.pm_UX_knc___ = torch.zeros((self.n_cluster, grid.n_k_p_r - 1, grid.n_k_p_r), dtype=torch.float32)
         self.make_cluster_averages(grid)
         # don't preallocate, let's just do it since we have the means to do so
         # self.CTF_k_p_r_xavg_kc__ = torch.zeros((self.n_cluster, grid.n_k_p_r))
@@ -211,18 +211,16 @@ class CTFCluster():
             pm_X_kkc___ = self._determine_principal_modes_from_ansatz(grid, volume, delta_sigma_base)
         
         # Target rank for the weight matrix is one less than the number of frequencies in the grid.
+        # To keep the PM matrix valid (non-ragged), we have to store that many columns of the SVD
+        # result for each cluster. However, we'll also keep track of a per-cluster "actual" rank,
+        # so we know how many columns to use for that specific cluster; we compute this as the
+        # count of singular values which exceed tolerance when normalized by the largest singular value.
         n_UX_rank = grid.n_k_p_r - 1
         for ncluster in range(self.n_cluster):
-            # # tmp_X_kk__ = torch.reshape(pm_X_kkc___[ncluster,:,:], grid_shape)
-            # This is already nkpr x nkpr by construction
-            tmp_X_kk__ = pm_X_kkc___[ncluster] # no need to include indexing when all dims are full
+            tmp_X_kk__ = pm_X_kkc___[ncluster]
             tmp_UX__, tmp_SX_, _ = matlab_style_svd_macro(tmp_X_kk__, n_UX_rank)
-            # record the pm rank for this to be the count of the SVDs greater than tolerance
             norm_val = max(MACHINE_TOLERANCE, tmp_SX_[0]) # linalg.svd returns S in desc order
             self.pm_n_UX_rank_c_[ncluster] = (tmp_SX_ / norm_val > parameters.tolerance_pm).sum().item()
-            # # # significant_modes = torch.where(tmp_SX_ / normalization_val > parameters.tolerance_pm)[0]
-            # # # pm_n_UX_rank = 1 + int(torch.max(significant_modes).item())
-            # # # self.pm_n_UX_rank_c_[ncluster] = pm_n_UX_rank
 
             # this is setting to n_UX_rank (NOT pm_n_UX_rank_c_) SVs regardless of how
             # many are actually used for this cluster; we need this to keep the

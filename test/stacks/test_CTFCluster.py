@@ -7,6 +7,7 @@ from pytest import raises
 from empm.grids import PolarGrid
 from empm.stacks import force_isotropy, CTFCluster, ImageStack, Volume
 
+PKG = "empm.stacks.CTFCluster"
 
 def _make_mock_grid(n_angles, n_rings):
     grid = Mock()
@@ -101,7 +102,7 @@ def test_make_cluster_averages():
                                        [9]]
     expected_cluster_img_counts = [2, 3, 4, 1]
 
-    with patch("empm.stacks.CTFCluster.knn_cluster_CTF_k_p_r_kC__1") as mock_clusterer:
+    with patch(f"{PKG}.knn_cluster_CTF_k_p_r_kC__1") as mock_clusterer:
         mock_clusterer.return_value = (None, ctf_to_cluster_map)
         res = CTFCluster(Mock(), grid, mock_ctfs)
 
@@ -181,7 +182,7 @@ def test_determine_principal_modes_empirically():
         torch.arange(n_clusters),
         torch.ones(n_clusters, dtype=torch.int32) * n_images
     )
-    with patch("empm.stacks.CTFCluster.knn_cluster_CTF_k_p_r_kC__1") as mock_clusterer:
+    with patch(f"{PKG}.knn_cluster_CTF_k_p_r_kC__1") as mock_clusterer:
         mock_clusterer.return_value = (None, ctf_to_cluster_map)
         sut = CTFCluster(Mock(), grid, mock_ctfs)
         
@@ -228,10 +229,58 @@ def test_determine_principal_modes_from_ansatz():
         +581.1505841190713681,
     ], dtype=torch.float32).reshape((3,3)).repeat((n_clusters, 1, 1))
     
-    with patch("empm.stacks.CTFCluster.knn_cluster_CTF_k_p_r_kC__1") as mock_clusterer:
+    with patch(f"{PKG}.knn_cluster_CTF_k_p_r_kC__1") as mock_clusterer:
         mock_clusterer.return_value = (None, ctf_to_cluster_map)
         sut = CTFCluster(Mock(), grid, mock_ctfs)
 
         pm_X_kkc___ = sut._determine_principal_modes_from_ansatz(grid, vol, delta_sigma)
         assert_close(pm_X_kkc___, expected_pm_X_kkc___, atol=1.3e-6, rtol=2e-6)
         assert_close(sut.pm_X_weight_rc__, expected_weights.reshape(1, -1).repeat((n_clusters, 1)))
+
+
+def test_determine_principal_modes():
+    n_ctfs = 5
+    n_angles = 7
+    n_rings = 4
+    n_clusters = 3
+    grid = _make_mock_grid(n_angles, n_rings)
+    (ctf_base, _) = _make_scaled_mock_ctf_tensor(n_angles, n_rings, n_ctfs)
+    ctfs = _make_mock_ctf(ctf_base)
+    ctfs.index_nCTF_from_nM_ = torch.arange(len(ctf_base))
+    cluster_assignment = torch.tensor([0, 1, 2, 2, 2])
+
+    parameters = Mock()
+    parameters.tolerance_pm = 0.5
+
+    mock_pm = Mock(return_value=torch.arange(n_clusters * n_ctfs).reshape((n_clusters, -1)))
+    # as n_rings = 4, we expect to store 3 columns per cluster.
+    # For each one we need a 4 x 4 matrix (of which we'll take max 3 columns),
+    # and a singular-value vector which will determine how many elements we
+    # record as actually using.
+    c1_ux = torch.ones(16, dtype=torch.float32).reshape((4,4))
+    c2_ux = c1_ux * 2.
+    c3_ux = c1_ux * 3.
+    c1_sx = torch.tensor([3., 1., 1., 0.])  # 1 sv should pass
+    c2_sx = torch.tensor([4., 3., 1., 0.])  # 2 svs should pass
+    c3_sx = torch.tensor([4., 3., 3., 1.])  # 3 svs should pass
+    returns = [(c1_ux, c1_sx, None),
+               (c2_ux, c2_sx, None),
+               (c3_ux, c3_sx, None),
+               ]
+    expected_c1 = torch.ones(12, dtype=torch.float32).reshape(3, 4)
+    expected_c2 = expected_c1 * 2
+    expected_c3 = expected_c1 * 3
+
+    expected_ranks = torch.tensor([1, 2, 3], dtype=torch.int32)
+    expected_matrix = torch.stack([expected_c1, expected_c2, expected_c3])
+
+    with patch(f"{PKG}.knn_cluster_CTF_k_p_r_kC__1") as mock_clusterer:
+        mock_clusterer.return_value = (None, cluster_assignment)
+        sut = CTFCluster(Mock(), grid, ctfs)
+        sut._determine_principal_modes_empirically = mock_pm
+        with patch(f"{PKG}.matlab_style_svd_macro") as mock_svd:
+            mock_svd.side_effect = returns
+            sut.determine_principal_modes(parameters, grid, Mock(), None, 0.0)
+
+            assert_close(sut.pm_n_UX_rank_c_, expected_ranks)
+            assert_close(sut.pm_UX_knc___, expected_matrix)
