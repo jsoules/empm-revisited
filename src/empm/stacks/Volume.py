@@ -167,10 +167,9 @@ class Volume():
         # expand the per-ring weights to the number of y-elements in each radial ring.
         weight_Y_val_ = weight_3d_k_p_r_.repeat_interleave(self.n_y_)
 
-        a_k_Y_ = self.a_k_Y_reco_yk_
-        a_std = torch.sqrt(torch.sum(torch.conj(a_k_Y_) * weight_Y_val_ * a_k_Y_)).item()
-        denom = max(1e-12, a_std.real)
-        self.a_k_Y_reco_yk_ = a_k_Y_ / denom
+        a_std = torch.linalg.vector_norm(self.a_k_Y_reco_yk_ * torch.sqrt(weight_Y_val_))
+        denom = max(1e-12, a_std)
+        self.a_k_Y_reco_yk_ = self.a_k_Y_reco_yk_ / denom
     
 
     def generate_templates(self,

@@ -89,6 +89,10 @@ def force_isotropy(ctfs: CTF, grid: PolarGrid) -> Tensor:
 def _force_isotropy(ctfs: Tensor, grid: PolarGrid) -> Tensor:
     if not grid.is_uniform:
         raise Exception("Currently unsupported for nonuniform inplane angle counts")
+    curr_shape = ctfs.shape
+    if (len(curr_shape) == 2 and curr_shape[-1] == grid.n_k_p_r) or curr_shape[-1] == 1:
+        # already isotropic
+        return ctfs#.reshape(-1, grid.n_k_p_r, 1)
     grid_shape = (-1, grid.n_k_p_r, grid.n_w_max)
     return ctfs.reshape(grid_shape).mean(2)
 
@@ -168,7 +172,7 @@ class CTFCluster():
         )
         
         self.index_ncluster_from_nCTF_ = index_ncluster_from_nCTF_
-        self.n_cluster = 1 + int(torch.max(self.index_ncluster_from_nCTF_).item())
+        self.n_cluster = 1 + int(torch.max(self.index_ncluster_from_nCTF_))
         self.index_ncluster_from_nM_ = \
             self.index_ncluster_from_nCTF_[ctfs.index_nCTF_from_nM_]
         self.index_nM_from_ncluster__ = []
@@ -181,7 +185,7 @@ class CTFCluster():
             self.n_index_nM_from_ncluster_[ncluster] = int(img_indices.numel())
         # allocate space for principal-mode matrices
         self.pm_n_UX_rank_c_ = torch.zeros((self.n_cluster), dtype=torch.int32)
-        self.pm_UX_knc___ = torch.zeros((self.n_cluster, grid.n_k_p_r - 1), dtype=torch.float32)
+        self.pm_UX_knc___ = torch.zeros((self.n_cluster, grid.n_k_p_r - 1, grid.n_k_p_r), dtype=torch.float32)
         self.make_cluster_averages(grid)
         # don't preallocate, let's just do it since we have the means to do so
         # self.CTF_k_p_r_xavg_kc__ = torch.zeros((self.n_cluster, grid.n_k_p_r))
@@ -207,18 +211,16 @@ class CTFCluster():
             pm_X_kkc___ = self._determine_principal_modes_from_ansatz(grid, volume, delta_sigma_base)
         
         # Target rank for the weight matrix is one less than the number of frequencies in the grid.
+        # To keep the PM matrix valid (non-ragged), we have to store that many columns of the SVD
+        # result for each cluster. However, we'll also keep track of a per-cluster "actual" rank,
+        # so we know how many columns to use for that specific cluster; we compute this as the
+        # count of singular values which exceed tolerance when normalized by the largest singular value.
         n_UX_rank = grid.n_k_p_r - 1
         for ncluster in range(self.n_cluster):
-            # # tmp_X_kk__ = torch.reshape(pm_X_kkc___[ncluster,:,:], grid_shape)
-            # This is already nkpr x nkpr by construction
-            tmp_X_kk__ = pm_X_kkc___[ncluster] # no need to include indexing when all dims are full
+            tmp_X_kk__ = pm_X_kkc___[ncluster]
             tmp_UX__, tmp_SX_, _ = matlab_style_svd_macro(tmp_X_kk__, n_UX_rank)
-            # record the pm rank for this to be the count of the SVDs greater than tolerance
             norm_val = max(MACHINE_TOLERANCE, tmp_SX_[0]) # linalg.svd returns S in desc order
             self.pm_n_UX_rank_c_[ncluster] = (tmp_SX_ / norm_val > parameters.tolerance_pm).sum().item()
-            # # # significant_modes = torch.where(tmp_SX_ / normalization_val > parameters.tolerance_pm)[0]
-            # # # pm_n_UX_rank = 1 + int(torch.max(significant_modes).item())
-            # # # self.pm_n_UX_rank_c_[ncluster] = pm_n_UX_rank
 
             # this is setting to n_UX_rank (NOT pm_n_UX_rank_c_) SVs regardless of how
             # many are actually used for this cluster; we need this to keep the
@@ -267,16 +269,14 @@ class CTFCluster():
     def _determine_principal_modes_from_ansatz(self,
         grid: PolarGrid,
         volume: Volume,
-        delta_sigma_base: float = 0.0   # this might also be vector-valued?
+        delta_sigma_base: float = 0.0,   # this might also be vector-valued?,
     ) -> Tensor:
             matrix_shape = (self.n_cluster, grid.n_k_p_r, grid.n_k_p_r)
             X_2d_xavg_dx_kkc___ = torch.zeros(matrix_shape, dtype=torch.float32)
             X_2d_xavg_dx_weight_rc__ = torch.zeros((self.n_cluster, grid.n_k_p_r), dtype=torch.float32)
             for ncluster in range(self.n_cluster):
-                # tmp_CTF_k_p_r_xavg_kk__ = torch.reshape(tmp_CTF_k_p_r_xavg_k_, (1, grid.n_k_p_r)) * torch.reshape(tmp_CTF_k_p_r_xavg_k_, (grid.n_k_p_r, 1))
                 isotropic_avg_ctf = self.CTF_k_p_r_xavg_kc__[ncluster]
                 tmp_CTF_k_p_r_xavg_kk__ = isotropic_avg_ctf[None, :] * isotropic_avg_ctf[:, None]
-
                 (
                     X_2d_xavg_dx_kk__,
                     X_2d_xavg_dx_weight_r_,
@@ -330,7 +330,9 @@ class CTFCluster():
         # # # weight_sums_per_cluster = torch.mm(one_hot, self.ctfs.CTF_k_p_wkC__)
         num_classes = self.n_cluster
         one_hot = torch.nn.functional.one_hot(self.index_ncluster_from_nCTF_, num_classes=num_classes).T.to(torch.float32)
-        weight_sums_per_cluster = (one_hot @ torch.permute(self.ctfs.CTF_k_p_wkC__, (2, 0, 1))).permute(1, 2, 0)
+        ## This was only needed when ctfs were *not* linearized
+        # weight_sums_per_cluster = (one_hot @ torch.permute(self.ctfs.CTF_k_p_wkC__, (2, 0, 1))).permute(1, 2, 0)
+        weight_sums_per_cluster = (one_hot @ self.ctfs.CTF_k_p_wkC__)
         isotropic = _force_isotropy(weight_sums_per_cluster, grid)
         # Result is clusters x radii (we averaged over the inplanes)
         # divide by per-cluster CTF count, to finish the averaging.

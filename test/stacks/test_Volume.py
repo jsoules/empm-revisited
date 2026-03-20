@@ -28,7 +28,7 @@ def test_spharm_normalize():
     # Confirm normalization of result
     expanded_weights = weights.repeat_interleave((l_max_ + 1) ** 2)
     norm = torch.linalg.vector_norm(sut.a_k_Y_reco_yk_ * torch.sqrt(expanded_weights))
-    assert norm == 1
+    assert abs(norm - 1.) < 1e-6
 
     # assert that a normalized volume does not change further
     first_norm = torch.clone(sut.a_k_Y_reco_yk_)
