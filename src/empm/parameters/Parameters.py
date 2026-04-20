@@ -56,6 +56,8 @@ class Parameters():
             to 1/the highest frequency of the Fourier-space representation
             (k_p_r_max).
             TODO: NEED ACCESS TO K_P_R_MAX
+        svd_eps (float): Lower bound tolerance for SVD magnitude. Defaults to
+            value set for tolerance_master.
         flag_save_stage (int): Controls which operations will write log files
             (default 0)
         fname_pre (str): Prefix for log-file filenames (default to '')
@@ -73,6 +75,14 @@ class Parameters():
             If it is set to 0, the algorithm will do image-first alignment for the
             first half of its iterations and template-first alignment for the latter
             half. Defaults to 1 (alternating each iteration).
+
+        sample_sphere_k_eq_d (float): A copy of k_eq_d from spherical-grid creation
+        flag_qbp_vs_lsq (int): Whether volumetric reconstruction should use quadrature
+            backpropagation (1) or least squares (0)
+        qbp_eps (float): Threshold for the local pseudo-inverse used in quadrature
+            backpropgataion. Unused for other volumetric reconstruction methods.
+            Defaults to master tolerance if not set.
+        n_x_u_pack (int): Packing for ?? TODO
 
         r8_delta_r_max (float): Maximum displcement of individual images used in FTK.
             Defaults to value set for delta_r_max. (FTK)
@@ -126,9 +136,15 @@ class Parameters():
     delta_r_upd_threshold: float
     n_delta_v_requested: int
     template_viewing_k_eq_d: float
+    svd_eps: float
     flag_save_stage: int
     fname_pre: str
     flag_alternate_MS_vs_SM: int
+
+    sample_sphere_k_eq_d: float
+    flag_qbp_vs_lsq: int
+    qbp_eps: float
+    n_x_u_pack: int
 
     # FTK-related
     r8_delta_r_max: float
@@ -170,11 +186,16 @@ class Parameters():
         delta_r_upd_threshold: float = 0.0,
         n_delta_v_requested: int = 0,
         template_viewing_k_eq_d: float = -1.,
+        svd_eps: float = -1.,
         flag_save_stage: int = 0,
         fname_pre: str = '',
         flag_alternate_MS_vs_SM: int = 1,
-        r8_delta_r_max: float = 0.0,
-        r8_svd_eps: float = 1e-4,
+        sample_sphere_k_eq_d: float = 0.0,  # TODO: This describes a grid and maybe shouldn't be here?
+        flag_qbp_vs_lsq: int = 1,
+        qbp_eps: float = -1.,
+        n_x_u_pack: int = -1,
+        r8_delta_r_max: float = -1.,
+        r8_svd_eps: float = -1.,
         r8_delta_x_requested_: Tensor = torch.zeros(0),
         r8_delta_y_requested_: Tensor = torch.zeros(0),
         l_max: int = 25,
@@ -186,8 +207,8 @@ class Parameters():
         flag_clump_vs_cluster: int = -1,
         rank_pm: int = 10,
         rank_CTF: int = -1,
+        k_p_r_max: float = 0,   # TODO improve this
     ):
-        k_p_r_max = 0.
         if delta_r_upb < 0:
             delta_r_upb = 2 * delta_r_max
         if template_viewing_k_eq_d < 0:
@@ -212,13 +233,19 @@ class Parameters():
         self.delta_r_upd_threshold = delta_r_upd_threshold
         self.n_delta_v_requested = n_delta_v_requested
         self.template_viewing_k_eq_d = template_viewing_k_eq_d
+        self.svd_eps = svd_eps if svd_eps > 0 else tolerance_master
         self.flag_save_stage = flag_save_stage
         self.fname_pre = fname_pre
         self.flag_alternate_MS_vs_SM = flag_alternate_MS_vs_SM
 
+        self.sample_sphere_k_eq_d = sample_sphere_k_eq_d
+        self.flag_qbp_vs_lsq = flag_qbp_vs_lsq
+        self.qbp_eps = qbp_eps if qbp_eps > 0 else self.tolerance_master
+        self.n_x_u_pack = n_x_u_pack
+
         # FTK-related
-        self.r8_delta_r_max = r8_delta_r_max
-        self.r8_svd_eps = r8_svd_eps
+        self.r8_delta_r_max = r8_delta_r_max if r8_delta_r_max > 0 else self.delta_r_max
+        self.r8_svd_eps = r8_svd_eps if r8_svd_eps > 0 else self.svd_eps
         # These 2 need to go back to None if they are length 0
         self.r8_delta_x_requested_ = r8_delta_x_requested_
         self.r8_delta_y_requested_ = r8_delta_y_requested_
@@ -327,10 +354,16 @@ class Parameters():
         res['delta_r_upd_threshold'] = self.delta_r_upd_threshold
         res['n_delta_v_requested'] = self.n_delta_v_requested
         res['template_viewing_k_eq_d'] = self.template_viewing_k_eq_d
+        res['svd_eps'] = self.svd_eps
         res['flag_save_stage'] = self.flag_save_stage
         res['fname_pre'] = self.fname_pre
         res['flag_alternate_MS_vs_SM'] = self.flag_alternate_MS_vs_SM
         res['flag_MS_vs_SM'] = 1 if self.get_ms_vs_sm(n_iter) else 0
+
+        res['sample_sphere_k_eq_d'] = self.sample_sphere_k_eq_d
+        res['flag_qbp_vs_lsq'] = self.flag_qbp_vs_lsq
+        res['qbp_eps'] = self.qbp_eps
+        res['n_x_u_pack'] = self.n_x_u_pack
 
         res['flag_precompute_M_k_q_wkM__'] = self.flag_precompute_M_k_q_wkM__
         res['flag_precompute_UX_T_M_l2_dM__'] = self.flag_precompute_UX_T_M_l2_dM__
