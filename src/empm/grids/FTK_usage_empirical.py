@@ -78,7 +78,6 @@ class FTK():
     @classmethod
     def from_grid(cls, grid: PolarGrid, params: Parameters) -> Self:
         _, blob = tfh_FTK_4(params.to_dict(), grid.n_k_p_r, grid.k_p_r_, grid.k_p_r_max)
-        print(f"blob: {blob['r8_svd_d_max']} vs params {params.delta_r_max}")
         assert blob['r8_svd_d_max'] >= params.delta_r_max
         assert blob['n_delta_v'] >= params.n_delta_v_requested
         return cls(

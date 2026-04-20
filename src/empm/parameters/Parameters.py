@@ -423,5 +423,8 @@ def matlab_save(fname: str, data: dict[str, Any]) -> None:
         # Before saving, for all tensors, reorder dimensions to match matlab
         if isinstance(data[key], torch.Tensor):
             t = data[key]
-            data[key] = torch.permute(t, list(reversed(t.shape)))
+
+            data[key] = torch.permute(t, list(reversed(range(len(t.shape)))))
+        if data[key] is None:
+            data[key] = torch.arange(0)
     savemat(file_name=fname, mdict=data, oned_as='column')

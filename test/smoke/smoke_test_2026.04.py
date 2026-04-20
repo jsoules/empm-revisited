@@ -14,6 +14,7 @@ def _set_params() -> Parameters:
         tolerance_master = 0.01,
         tolerance_pm = 0.1,
         flag_gpu = 1,
+        flag_save_stage = 5,
         delta_r_max = 0.017631663493955,
         delta_r_upb = 0.141053307951639,
         # dir_tfpm??
