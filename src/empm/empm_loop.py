@@ -46,7 +46,7 @@ def execute_empm(       # replaces tfpmut_6
         _checkpoint_preloop(parameter, grid, volume, ctf_cluster, poses, ftk)
 
     for niteration in range(parameter.n_iteration):
-        parameter.print_per_verbosity(f" %% niteration {niteration:.2d}/{parameter.n_iteration:.2d}")
+        parameter.print_per_verbosity(f" %% niteration {niteration:2d}/{parameter.n_iteration:2d}")
 
         M_pert_k_p_wkM__ = image_stack.apply_displacements_from_poses(grid, poses, M_pert_k_p_wkM__)
         if parameter.flag_save_stage > 2:

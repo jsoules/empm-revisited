@@ -29,7 +29,9 @@ class PolarGrid():
     """Class implementing 2D polar-coordinate grid.
 
     Attributes:
-        is_uniform (bool): Flag indicating whether the grid is uniform
+        is_uniform (bool): Flag indicating whether the grid is uniform (in the sense
+            of having the same number of points per shell at the same in-plane angles)
+            which determines quadrature point indexing for certain operations elsewhere
         n_k_p_r (int): Number of frequency bands / radii
         k_p_r_ (Tensor): Frequency (k) value for each band. 1d real tensor, expected
             to have n_k_p_r elements.
@@ -85,7 +87,7 @@ class PolarGrid():
     is_uniform: bool
     n_k_p_r: int
     k_p_r_: Tensor
-    k_p_r_max: int
+    k_p_r_max: float
     template_k_eq_d: float
     n_w_: Tensor
     weight_2d_k_p_r_: Tensor
@@ -105,7 +107,7 @@ class PolarGrid():
         is_uniform: bool,
         n_k_p_r: int,
         k_p_r_: Tensor,
-        k_p_r_max: int | None,
+        k_p_r_max: float | None,
         template_k_eq_d: float,
         n_w_: Tensor,
         weight_2d_k_p_r_: Tensor,
@@ -145,7 +147,7 @@ class PolarGrid():
         cls,
         n_k_p_r: int = 0,
         k_p_r_: Tensor = torch.zeros(0),
-        k_p_r_max: int = 0,
+        k_p_r_max: float = 0.,
         template_k_eq_d: float = -1.,
         n_w_0in_: Tensor = torch.zeros(0),
         weight_3d_k_p_r_: Tensor = torch.zeros(0)

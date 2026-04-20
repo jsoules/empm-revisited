@@ -110,7 +110,7 @@ class Volume():
     n_y_csum_: Tensor
     a_k_Y_reco_yk_: Tensor
 
-    def __init__(self, l_max_: Tensor):
+    def __init__(self, l_max_: Tensor, a_k_Y_reco_yk_: Tensor | None = None):
         # TODO: representation checking (dtype, shape, etc)
         self.l_max_ = l_max_
         self.l_max_max = int(torch.max(l_max_).item())
@@ -118,7 +118,10 @@ class Volume():
         self.n_y_max = int(torch.max(self.n_y_).item())
         self.n_y_sum = int(torch.sum(self.n_y_).item())
         self.n_y_csum_ = zero_initial_csum(self.n_y_)
-        self.a_k_Y_reco_yk_ = torch.zeros(1, dtype=torch.complex64)
+        if a_k_Y_reco_yk_ is not None:
+            self.a_k_Y_reco_yk_ = a_k_Y_reco_yk_
+        else:
+            self.a_k_Y_reco_yk_ = torch.zeros(0, dtype=torch.complex64)
 
 
     def reconstruct_volume(self,
@@ -192,7 +195,7 @@ class Volume():
             0, # flag-verbose is hard-coded off
             self.l_max_max,
             grid.n_k_p_r,
-            torch.reshape(local_yk__from_yk_(grid.n_k_p_r, self.l_max_, self.a_k_Y_reco_yk_)[0], (grid.n_k_p_r, self.n_y_max)),
+            torch.reshape(local_yk__from_yk_(grid.n_k_p_r, self.l_max_, self.a_k_Y_reco_yk_), (grid.n_k_p_r, self.n_y_max)),
             parameter.template_viewing_k_eq_d,
             -1,
             grid.n_w_max,

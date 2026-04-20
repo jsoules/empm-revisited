@@ -253,7 +253,7 @@ class Alignment():
             self.ctf_clusters.pm_n_UX_rank_c_,
             self.ctf_clusters.pm_UX_knc___,
             self.ctf_clusters.pm_X_weight_rc__,
-            self.ftk,
+            self.ftk.to_dict(),
             torch.where(self.poses.flag_image_delta_upd_M_)[0], # aka index_nM_to_update_,
             self._scratch.M_k_q_wkM__,
             self._scratch.UX_T_M_l2_dM__,

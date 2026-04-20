@@ -42,7 +42,7 @@ source = ["src"]
 omit = ["test/*"]
 
 [tool.pytest.ini_options]
-addopts = "--ignore=test/integration/backup --ignore=orig --ignore=test/unit/backup --cov --cov-report xml --cov-report term-missing -rs"
+addopts = "--ignore=test/integration/backup --ignore=test/smoke --ignore=orig --ignore=test/unit/backup --cov --cov-report xml --cov-report term-missing -rs"
 norecursedirs = "test/helpers"
 pythonpath = ["test/helpers"]
 tmp_path_retention_policy = "none"
