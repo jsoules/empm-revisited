@@ -3,9 +3,9 @@ from torch import Tensor
 from math import floor
 from typing import Callable
 
-from .parameters import Parameters, MACHINE_TOLERANCE
-from .grids import PolarGrid, FTK
-from .stacks import Alignment, CTFCluster, ImageStack, Poses, force_isotropy, Volume
+from empm.parameters import Parameters, MACHINE_TOLERANCE
+from empm.grids import PolarGrid, FTK
+from empm.stacks import Alignment, CTFCluster, ImageStack, Poses, force_isotropy, Volume
 
 # TODO: THIS AFFECTS CALLERS
 # TODO NOTE: When setting up parameters, we want r8_svd_eps to be TOLERANCE_MASTER not its default value

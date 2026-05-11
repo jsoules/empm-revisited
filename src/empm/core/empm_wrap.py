@@ -1,10 +1,10 @@
 import torch
 from torch import Tensor
 
-from .parameters import Parameters
-from .grids import PolarGrid, FTK
-from .stacks import CTFCluster, CTF, ImageStack, Poses, force_isotropy, Volume
-from .empm_loop import execute_empm
+from empm.parameters import Parameters
+from empm.grids import PolarGrid, FTK
+from empm.stacks import CTFCluster, CTF, ImageStack, Poses, force_isotropy, Volume
+from empm.core import execute_empm
 
 # TODO: The below entries should be configured in an incoming Poses object
 # euler_polar_a_ini_M_=None,
