@@ -21,19 +21,10 @@ def _set_params() -> Parameters:
         flag_clump_vs_cluster = 0,
         rank_CTF = 4,
         k_p_r_max = 7.639437268410976,
-        fname_pre = 'tmp',      # NOTE: Orig has tmp_dir_tfpm_mat/test_tfpmu_wrap_6_X[A|B]_from_python
-                                # but a) no hard-coding paths and b) can't really write to Adi's dir anyway
+        fname_pre = 'tmp',
         sample_sphere_k_eq_d = 0.159154943091895,
         flag_qbp_vs_lsq = 1,
         qbp_eps = 0.01,
-        # flag_force_create_mat = 0
-        # flag_force_create_tmp = 1
-        # parameter['half_diameter_x_c']=1;
-        # parameter['n_x_u_pack']=64;
-        # parameter['cg_lsq_n_order']=5;
-        # parameter['date_diff_threshold']=0.250000000000000;
-        # parameter['str_strategy_prefix']='';
-        # parameter['n_complete_calculation']=0;
 
         # these match the defaults but I'm including them explicitly
         # in case the defaults change
@@ -58,7 +49,6 @@ def _set_grid(matlab_src: dict) -> PolarGrid:
 
 def _set_ctfs(matlab_src: dict) -> CTF:
     ctfs = CTF(
-        # n_CTF = int(matlab_src['n_CTF'].item()), # we don't actually need this--just read it from the actual CTF tensor
         CTF_k_p_wkC__ = matlab_src['CTF_k_p_wkC__'].to(dtype=torch.float32),
         index_nCTF_from_nM_ = matlab_src['index_nCTF_from_nM_'].to(dtype=torch.int32)
     )
@@ -114,26 +104,6 @@ def main(tmp_dir_base: str):
         volume,
         initial_poses
     )
-
-
-# TODO: The below entries should be configured in an incoming Poses object
-# euler_polar_a_ini_M_=None,
-# euler_azimu_b_ini_M_=None,
-# euler_gamma_z_ini_M_=None,
-# image_delta_x_acc_ini_M_=None, --> maps to acc
-# image_delta_y_acc_ini_M_=None,
-
-# def empm_loop_wrapper(  # former tfpmut_wrap_6. Name to be further revised.
-#         parameter: Parameters,
-#         grid: PolarGrid,
-#         weight_3d_k_p_r_: Tensor,
-#         ctfs: CTF,
-#         images: ImageStack,
-#         volume: Volume,
-#         initial_poses: Poses | None = None,
-#         delta_sigma_base: float = 0.0, # TODO: could this be vector-valued?
-#         ftk: FTK | None = None
-# ):
 
 
 if __name__ == '__main__':
