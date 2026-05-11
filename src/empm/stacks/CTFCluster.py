@@ -171,7 +171,7 @@ class CTFCluster():
             CTF_k_p_r_kC__ = CTF_k_p_r_kC__
         )
         
-        self.index_ncluster_from_nCTF_ = index_ncluster_from_nCTF_
+        self.index_ncluster_from_nCTF_ = index_ncluster_from_nCTF_.to(dtype=torch.int64)
         self.n_cluster = 1 + int(torch.max(self.index_ncluster_from_nCTF_))
         self.index_ncluster_from_nM_ = \
             self.index_ncluster_from_nCTF_[ctfs.index_nCTF_from_nM_]

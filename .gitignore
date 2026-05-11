@@ -47,6 +47,8 @@ imgs/
 cross-val/
 eval/
 eval/*
+tmp/
+tmp/**
 
 # Installer logs
 pip-log.txt
