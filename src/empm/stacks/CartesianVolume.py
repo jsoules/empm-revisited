@@ -63,10 +63,6 @@ class CartesianVolume():
     @classmethod
     def from_spharm_volume(cls,
         volume: Volume,
-        # TODO: Pull these from some other grid?
-        n_k_p_r: int,
-        k_p_r_: Tensor,
-        weight_3d_k_p_r_: Tensor,
         k_p_r_max: float = 48 / (2 * torch.pi),
         k_eq_d: float = 1. / (2 * torch.pi),
         half_diameter_x_c: float = 1.0,
@@ -85,9 +81,9 @@ class CartesianVolume():
             k_p_polar_a_qk_,
             weight_3d_k_p_qk_,
             weight_shell_qk_,
-            tmp_n_k_p_r,
-            tmp_k_p_r_,
-            tmp_weight_3d_k_p_r_,
+            n_k_p_r,
+            k_p_r_,
+            weight_3d_k_p_r_,
             k_c_0_qk_,
             k_c_1_qk_,
             k_c_2_qk_,
@@ -99,12 +95,6 @@ class CartesianVolume():
             flag_uniform_over_n_k_p_r = 1
         )[:13]
         # ^-- sum(weight_3d_k_p_r_)*(4*pi) = (4/3)*pi*k_p_r_max^3 --> sum(weight_3d_k_p_r_) = (1/3)*k_p_r_max^3 ;
-        _point_count_discrepancy = abs(tmp_n_k_p_r - n_k_p_r)
-        _radius_discrepancy = torch.linalg.norm(tmp_k_p_r_ - k_p_r_).item()
-        _weight_discrepancy = torch.linalg.norm(tmp_weight_3d_k_p_r_ - weight_3d_k_p_r_).item()
-        if _point_count_discrepancy > 1e-6 or _radius_discrepancy > 1e-6 or _weight_discrepancy > 1e-6:
-            raise ValueError("Error: uniform Cartesian sphere sampling is inconsistent with submitted values.")
-
 
         (
             a_k_p_qk_,
