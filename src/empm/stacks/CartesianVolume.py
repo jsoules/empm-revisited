@@ -20,16 +20,25 @@ from dir_empm.xxnufft3d3 import xxnufft3d3
 
 class CartesianVolume():
     """Class holding Cartesian real-space representation of a
-    reconstructed volume.
+    reconstructed volume. This class does NOT include a representation
+    of the requested Cartesian grid.
 
     Attributes:
-        a_x_u_xxx_ (Tensor): TKTK
-        a_k_p_qk_ (Tensor): TKTK
-        sqrt_2lp1_ (Tensor): TKTK
-        sqrt_2mp1_ (Tensor): TKTK
-        sqrt_rat0_m_ (Tensor): TKTK
-        sqrt_rat3_lm__ (Tensor): TKTK
-        sqrt_rat4_lm__ (Tensor): TKTK
+        a_x_u_xxx_ (Tensor): The volume in physical space,
+            linearized over a Cartesian grid
+        a_k_p_qk_ (Tensor): The volume in Fourier space,
+            linearized over a polar grid; this is a holdover
+            record that was provided by the user
+        sqrt_2lp1_ (Tensor): Internal use--allocated memory
+            buffer for precomputed values
+        sqrt_2mp1_ (Tensor): Internal use--allocated memory
+            buffer for precomputed values
+        sqrt_rat0_m_ (Tensor): Internal use--allocated memory
+            buffer for precomputed values
+        sqrt_rat3_lm__ (Tensor): Internal use--allocated memory
+            buffer for precomputed values
+        sqrt_rat4_lm__ (Tensor): Internal use--allocated memory
+            buffer for precomputed values
     """
 
     a_x_u_xxx_: Tensor
@@ -68,6 +77,25 @@ class CartesianVolume():
         half_diameter_x_c: float = 1.0,
         n_x_u_pack: int = 64,
     ) -> CartesianVolume:
+        """Generate a physical-space Cartesian-grid volume representation from
+        an input Fourier-space spherical-harmonic volume and grid descriptors.
+
+        Args:
+            volume (Volume): Volume object with the relevant volume in Fourier space
+                in a spherical-harmonic basis
+            k_p_r_max (float, optional): Max frequency to use in conversion.
+                Defaults to 48/(2 * torch.pi).
+            k_eq_d (float, optional): Equatorial point distance, used to determine
+                resolution for intermediate steps in conversion. Defaults to 1./(2 * torch.pi).
+            half_diameter_x_c (float, optional): Descriptor of the target Cartesian space's
+                resolution. Defaults to 1.0.
+            n_x_u_pack (int, optional): Number of points (fineness of grid) in the
+                Cartesian representation grid. Defaults to 64.
+
+        Returns:
+            CartesianVolume: The volume in physical space, as projected onto a
+                Cartesian grid (not returned).
+        """
         _axis_points = generate_equispaced_points(half_diameter_x_c, n_x_u_pack)
         x_u_2, x_u_1, x_u_0 = torch.meshgrid(_axis_points, _axis_points, _axis_points, indexing='ij')
         n_xxx_u = n_x_u_pack ** 3
