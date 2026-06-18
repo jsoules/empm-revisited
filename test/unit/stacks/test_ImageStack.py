@@ -3,9 +3,13 @@ from torch.testing import assert_close
 from inspect import get_annotations, getmembers
 from types import MethodType
 from unittest.mock import Mock, patch
-from pytest import raises
+from pytest import raises, mark
+from math import sqrt, sin, cos
 
 from empm.stacks import ImageStack, Poses
+from empm.grids import PolarGrid
+from dir_empm.get_weight_3d_1 import get_weight_3d_1
+from dir_empm.get_weight_2d_2 import get_weight_2d_2
 
 
 def test_apply_displacements_from_poses():
@@ -51,3 +55,142 @@ def test_apply_displacements_from_poses():
     assert_close(res[2], expected[2])
     assert_close(res[4], expected[4])
 
+
+def _make_ref_grid() -> PolarGrid:
+    # polar grids
+    k_p_r_max = 24./torch.pi
+    k_eq_d = 0.5/torch.pi
+    n_w_max = 98
+    (n_k_p_r, k_p_r_, weight_3d) = get_weight_3d_1(0, k_p_r_max, k_eq_d, 'L')
+    n_w_0in_ = n_w_max * torch.ones(n_k_p_r, dtype=torch.int32)
+    # n_w_ = get_weight_2d_2(0, n_k_p_r, k_p_r_, k_p_r_max, -1, n_w_0in_, weight_3d)[0]
+
+    # NOTE: Per the original code, we are using -1 for k_eq_d instead of the value actually used
+    # to create the 3d weights, b/c that would result in an adaptive grid shape
+    grid = PolarGrid.make_uniform_grid(n_k_p_r, k_p_r_, k_p_r_max, -1, n_w_0in_, weight_3d)
+    return grid
+
+
+def _make_reference_gaussian_image_stack(grid: PolarGrid, n_points_cartesian: int = 128, cartesian_diameter: float = 2.0, centered: bool = True):
+    pi = torch.pi
+    root_2pi = sqrt(2 * pi)
+    cartesian_radius = cartesian_diameter / 2.
+
+
+    # Cartesian grids
+    if centered:
+        grid_points = torch.linspace(-cartesian_radius, cartesian_radius, n_points_cartesian, dtype=torch.float32)
+    else:
+        grid_points = torch.linspace(-cartesian_radius, cartesian_radius, n_points_cartesian + 1, dtype=torch.float32)[:-1]
+    inter_point_dist = grid_points[1] - grid_points[0]
+
+    x_0__, x_1__ = torch.meshgrid(grid_points,grid_points,indexing='ij'); #<-- order reversed to match matlab. ;
+
+    # Parameters for Gaussian image
+    _sigma_x = 0.0625
+    _delta_ = [
+        [0.75 * (0.1), 0.75 * (-0.2)],
+        [0.40 * (0.2), 0.40 * (-0.05)],
+        [0.50 * (-.3), 0.50 * (0.2)]
+    ]
+
+
+    # Create physical-cartesian images
+    phys_tmp = []
+    for row in _delta_:
+        phys_tmp.append(torch.exp( 
+            -( (x_0__ - row[0])**2 + (x_1__ - row[1])**2 ) \
+           / (2 * _sigma_x ** 2)
+        ) / (root_2pi * _sigma_x)**2
+    )
+    phys_image_stack = torch.stack(phys_tmp)
+
+    # Manually convert physical-cartesian image stack to fourier representation
+    tmp_img_fourier_polar = []
+    for row in _delta_:
+        for nk_p_r in range(grid.n_k_p_r):
+            k_p_r = grid.k_p_r_[nk_p_r].item()
+            n_w = int(grid.n_w_[nk_p_r].item())
+            for nw in range(n_w):
+                k_x_0 = k_p_r * cos(2 * pi * nw/n_w)
+                k_x_1 = k_p_r * sin(2 * pi * nw/n_w)
+                real_part = -1 * _sigma_x ** 2 * (
+                    (2 * pi * k_x_0) ** 2 \
+                    + (2 * pi * k_x_1) ** 2
+                ) / 2
+                imag_part = -2j * pi * (k_x_0 * row[0] + k_x_1 * row[1])
+                point = (torch.exp(torch.tensor(real_part)) * torch.exp(torch.tensor(imag_part))).item()
+                tmp_img_fourier_polar.append(point)
+
+    fourier_image_stack = torch.tensor(tmp_img_fourier_polar, dtype=torch.complex64)
+    return (phys_image_stack, fourier_image_stack, inter_point_dist)
+
+
+# def _make_reference_gaussian_image_stack_1d(grid: PolarGrid, n_points_cartesian: int = 128, cartesian_diameter: float = 2.0, centered: bool = True):
+#     pi = torch.pi
+#     root_2pi = sqrt(2 * pi)
+#     cartesian_radius = cartesian_diameter / 2.
+
+#     # Cartesian grids
+#     if centered:
+#         grid_points = torch.linspace(-cartesian_radius, cartesian_radius, n_points_cartesian, dtype=torch.float32)
+#     else:
+#         grid_points = torch.linspace(-cartesian_radius, cartesian_radius, n_points_cartesian + 1, dtype=torch.float32)[:-1]
+#     inter_point_dist = grid_points[1] - grid_points[0]
+
+#     x_0__, x_1__ = torch.meshgrid(grid_points,grid_points,indexing='ij'); #<-- order reversed to match matlab. ;
+
+#     # Parameters for Gaussian image
+#     _sigma_x = 0.0625
+#     _delta_ = [
+#         [0.75 * (0.1), 0.75 * (-0.2)],
+#     ]
+
+
+#     # Create physical-cartesian images
+#     phys_tmp = []
+#     for row in _delta_:
+#         phys_tmp.append(
+#             torch.exp( 
+#                 -( (x_0__ - row[0])**2 + (x_1__ - row[1])**2 ) \
+#                / (2 * _sigma_x ** 2)
+#             ) / (root_2pi * _sigma_x)**2
+#         )
+#     phys_image_stack = torch.stack(phys_tmp)
+
+#     # Manually convert physical-cartesian image stack to fourier representation
+#     tmp_img_fourier_polar = []
+#     for row in _delta_:
+#         for nk_p_r in range(grid.n_k_p_r):
+#             k_p_r = grid.k_p_r_[nk_p_r].item()
+#             n_w = int(grid.n_w_[nk_p_r].item())
+#             for nw in range(n_w):
+#                 k_x_0 = k_p_r * cos(2 * pi * nw/n_w)
+#                 k_x_1 = k_p_r * sin(2 * pi * nw/n_w)
+#                 real_part = -1 * _sigma_x ** 2 * (
+#                     (2 * pi * k_x_0) ** 2 \
+#                     + (2 * pi * k_x_1) ** 2
+#                 ) / 2
+#                 imag_part = -2j * pi * (k_x_0 * row[0] + k_x_1 * row[1])
+#                 point = (torch.exp(torch.tensor(real_part)) * torch.exp(torch.tensor(imag_part))).item()
+#                 tmp_img_fourier_polar.append(point)
+
+#     fourier_image_stack = torch.tensor(tmp_img_fourier_polar, dtype=torch.complex64)
+#     return (phys_image_stack, fourier_image_stack, inter_point_dist)
+
+
+@mark.parametrize("centered", [True, False])
+def test_from_cartesian_image_stack(centered: bool):
+    # Make reference images as Gaussians, in stack
+    grid = _make_ref_grid()
+    n_points_cartesian = 128 + (0 if centered else 1)
+    cartesian_diameter = 2.0
+    (phys_stack, fourier_expected, inter_point_dist) = _make_reference_gaussian_image_stack(grid, n_points_cartesian, cartesian_diameter, centered)
+
+    stack = ImageStack.from_cartesian_image_stack(phys_stack, n_points_cartesian, n_points_cartesian, cartesian_diameter, cartesian_diameter, grid)
+
+    # do normalization normalization that's ignored in actual EMPM processing but matters for the manual reconstruction
+    normalized_images = stack.M_k_p_wkM__ * n_points_cartesian * inter_point_dist ** 2
+
+    # raise ValueError(f"Got: {normalized_images[0,20:40]}, expected: {fourier_expected[20:40]}")
+    assert_close(normalized_images, fourier_expected.reshape((stack.n_M, -1)))

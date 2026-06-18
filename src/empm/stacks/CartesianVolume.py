@@ -76,6 +76,7 @@ class CartesianVolume():
         k_eq_d: float = 1. / (2 * torch.pi),
         half_diameter_x_c: float = 1.0,
         n_x_u_pack: int = 64,
+        use_centered: bool = True
     ) -> CartesianVolume:
         """Generate a physical-space Cartesian-grid volume representation from
         an input Fourier-space spherical-harmonic volume and grid descriptors.
@@ -91,12 +92,16 @@ class CartesianVolume():
                 resolution. Defaults to 1.0.
             n_x_u_pack (int, optional): Number of points (fineness of grid) in the
                 Cartesian representation grid. Defaults to 64.
+            use_centered (bool, optional): Whether to create the Cartesian grid as centered
+                (more amenable to Fourier-space representation) or uncentered (more amenable
+                to physical-space representation). Defaults to True (centered).
 
         Returns:
             CartesianVolume: The volume in physical space, as projected onto a
                 Cartesian grid (not returned).
         """
-        _axis_points = generate_equispaced_points(half_diameter_x_c, n_x_u_pack)
+        n_points = n_x_u_pack if use_centered else n_x_u_pack + 1
+        _axis_points = generate_equispaced_points(half_diameter_x_c, n_points)
         x_u_2, x_u_1, x_u_0 = torch.meshgrid(_axis_points, _axis_points, _axis_points, indexing='ij')
         n_xxx_u = n_x_u_pack ** 3
         a_x_u_xxx_ = torch.zeros(n_xxx_u, dtype=torch.complex64)

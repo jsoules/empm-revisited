@@ -25,7 +25,9 @@ class ImageStack():
 
     def apply_displacements_from_poses(self, grid: PolarGrid, poses: Poses, scratch: Tensor | None = None) -> Tensor:
         if scratch is None:
-            scratch = torch.ones_like(self.M_k_p_wkM__, dtype=torch.complex64)
+            # allocate uninitialized rather than doing ones-like
+            # scratch = torch.ones_like(self.M_k_p_wkM__, dtype=torch.complex64)
+            scratch = torch.tensor(self.M_k_p_wkM__.size(), dtype=torch.complex64)
         
         if grid.is_uniform:
             L_c_wkv__ = \
@@ -52,10 +54,14 @@ class ImageStack():
         n_x2: int,
         diameter_x1_c: float,
         diameter_x2_c: float,
-        polar_grid: PolarGrid
+        polar_grid: PolarGrid,
+        source_is_centered: bool = True
     ):
         """Create an image stack suitable for this package (Fourier-space representations
         on polar grid) from a physical-space representation on a Cartesian grid.
+
+        Note this DOES NOT NORMALIZE the result. since such normalization is actually
+        irrelevant for downstream EMPM processing.
 
         Args:
             image_tensor (Tensor): Tensor of image intensities, addressed as
@@ -65,6 +71,8 @@ class ImageStack():
             diameter_x1_c (float): Total span in dimension 1 of the Cartesian grid (Angstrom)
             diameter_x2_c (float): Total span in dimension 2 of the Cartesian grid (Angstrom)
             polar_grid (PolarGrid): Target polar grid to fit
+            source_is_centered (bool): Whether the source images are on a centered grid (the
+                default) or an uncentered one
         """
         n_M = image_tensor.shape[0]
         M_k_p_wkM__ = torch.zeros((n_M, polar_grid.n_w_sum), dtype=torch.complex64)
@@ -77,7 +85,8 @@ class ImageStack():
                 image_tensor[nM, :, :],
                 polar_grid.n_k_p_r,
                 polar_grid.k_p_r_,
-                polar_grid.n_w_
+                polar_grid.n_w_,
+                0 if source_is_centered else 1  # aka flag_u_vs_c
             )
             M_k_p_wkM__[nM, :] = img
 
