@@ -150,6 +150,6 @@ class CTF():
                     thetatr = _lambda_per_box/torch.pi,
                     l_ = grid.k_c_0_wk_,
                     m_ = grid.k_c_1_wk_
-                )
+                )[0]
         image_mapping = index_nCTF_from_nM_ if index_nCTF_from_nM_ is not None else torch.arange(n_CTF)
         return cls(CTF_k_p_wkC__, image_mapping)

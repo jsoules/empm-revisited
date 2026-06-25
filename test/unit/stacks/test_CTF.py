@@ -1,6 +1,7 @@
 import torch
 from unittest.mock import Mock, patch
 from torch.testing import assert_close
+from pytest import mark
 
 from empm.stacks.CTF import CTF
 from empm.parameters import Parameters
@@ -75,3 +76,84 @@ def test_empirically_determine_rank():
         # the first 3 items of mock_S, normalized by mock_S[0], are greater
         # than the 4e-3 tolerance we set above
         assert r == 3
+
+
+# def _make_testing_grid() -> PolarGrid:
+#     # Note this imports a particular non-uniform grid whose construction
+#     # is hard-coded in a test in the dir_empm package.
+#     kpr_max = 48/torch.pi
+#     k_eq_d = .5/torch.pi
+#     template_k_eq_d = 0.5
+#     (n_k_p_r, k_p_r_, wt_3d_k_p_r_) = get_weight_3d_1(0, kpr_max, k_eq_d, 'L')
+#     (n_w_, wt_2d_kpr_, wt_2d_kpwk_, kpr_wk_, kpw_wk_, kc0_wk_, kc1_wk_) = get_weight_2d_2(
+#         0, n_k_p_r, k_p_r_, kpr_max, template_k_eq_d, None, wt_3d_k_p_r_
+#     )
+
+#     return PolarGrid(
+#         False,
+#         n_k_p_r,
+#         k_p_r_,
+#         kpr_max,
+#         template_k_eq_d,
+#         n_w_,
+#         wt_2d_kpr_,
+#         wt_2d_kpwk_,
+#         kpr_wk_,
+#         kpw_wk_,
+#         kc0_wk_,
+#         kc1_wk_
+#     )
+
+
+# TODO mark it to check both list and tensor versions
+@mark.parametrize("use_tensors", [False, True])
+def test_make_ctfs_from_parameters(use_tensors: bool):
+    volt_c = [300., 300.]
+    defocusU = [22174.2, 21912.2]
+    defocusV = [21393.0, 22462.6]
+    defocusAngle = [1.60, 73.67]
+    spherical_ab = [2.0, 2.0]
+    amplitude = [0.1, 0.1]
+    if use_tensors:
+        volt_c = torch.tensor(volt_c)
+        defocusU = torch.tensor(defocusU)
+        defocusV = torch.tensor(defocusV)
+        defocusAngle = torch.tensor(defocusAngle)
+        spherical_ab = torch.tensor(spherical_ab)
+        amplitude = torch.tensor(amplitude)
+    n_pix_across = 256
+    pixel_size_angstrom = 1.2156 # this *looks* sto be correct
+    img_map = torch.tensor([1, 0]) if use_tensors else None
+
+    grid = Mock()
+    grid.n_w_sum = 15
+    grid.k_c_0_wk_ = Mock()
+    grid.k_c_1_wk_ = Mock()
+
+    mock_ctf_1 = torch.arange(grid.n_w_sum, dtype=torch.float64)
+    mock_ctf_2 = -3. * torch.arange(grid.n_w_sum, dtype=torch.float64)
+    with patch("empm.stacks.CTF.niko_ctf") as m:
+        m.side_effect = [(mock_ctf_1, 12), (mock_ctf_2, 15)]
+        ctfs = CTF.make_ctfs_from_parameters(
+            n_CTF = 2,
+            grid = grid,
+            n_pixels_across = n_pix_across,
+            pixel_size_angstrom = pixel_size_angstrom,
+            voltage_C_ = volt_c,
+            defocusU_C_ = defocusU,
+            defocusV_C_ = defocusV,
+            defocusAngle_C_ = defocusAngle,
+            sphericalAberration_C_ = spherical_ab,
+            amplitudeContrast_C_ = amplitude,
+            index_nCTF_from_nM_ = img_map
+        )
+        # TODO could do asserts about mocked-niko_ctf's call args
+        # I don't think this is really that informative right now;
+        # TODO need an integration test for this with actual numbers
+
+    assert ctfs.n_CTF == 2
+    assert_close(ctfs.CTF_k_p_wkC__, -1. * torch.stack([mock_ctf_1, mock_ctf_2]))
+    if use_tensors:
+        assert_close(ctfs.index_nCTF_from_nM_, img_map)
+    else:
+        assert_close(ctfs.index_nCTF_from_nM_, torch.arange(2))
