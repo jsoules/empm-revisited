@@ -74,8 +74,8 @@ class CartesianVolume():
         volume: Volume,
         k_p_r_max: float = 48 / (2 * torch.pi),
         k_eq_d: float = 1. / (2 * torch.pi),
-        half_diameter_x_c: float = 1.0,
-        n_x_u_pack: int = 64,
+        half_diameter_x: float = 1.0,
+        n_x: int = 64,
         use_centered: bool = True
     ) -> CartesianVolume:
         """Generate a physical-space Cartesian-grid volume representation from
@@ -88,10 +88,10 @@ class CartesianVolume():
                 Defaults to 48/(2 * torch.pi).
             k_eq_d (float, optional): Equatorial point distance, used to determine
                 resolution for intermediate steps in conversion. Defaults to 1./(2 * torch.pi).
-            half_diameter_x_c (float, optional): Descriptor of the target Cartesian space's
+            half_diameter_x (float, optional): Descriptor of the target Cartesian space's
                 resolution. Defaults to 1.0.
-            n_x_u_pack (int, optional): Number of points (fineness of grid) in the
-                Cartesian representation grid. Defaults to 64.
+            n_x (int, optional): Number of points (fineness of grid) in the Cartesian
+                representation grid. Defaults to 64.
             use_centered (bool, optional): Whether to create the Cartesian grid as centered
                 (more amenable to Fourier-space representation) or uncentered (more amenable
                 to physical-space representation). Defaults to True (centered).
@@ -100,11 +100,10 @@ class CartesianVolume():
             CartesianVolume: The volume in physical space, as projected onto a
                 Cartesian grid (not returned).
         """
-        n_points = n_x_u_pack if use_centered else n_x_u_pack + 1
-        _axis_points = generate_equispaced_points(half_diameter_x_c, n_points)
-        x_u_2, x_u_1, x_u_0 = torch.meshgrid(_axis_points, _axis_points, _axis_points, indexing='ij')
-        n_xxx_u = n_x_u_pack ** 3
-        a_x_u_xxx_ = torch.zeros(n_xxx_u, dtype=torch.complex64)
+        _axis_points = generate_equispaced_points(half_diameter_x, n_x, use_centered)
+        x_2, x_1, x_0 = torch.meshgrid(_axis_points, _axis_points, _axis_points, indexing='ij')
+        n_xxx = n_x ** 3
+        a_x_xxx_ = torch.zeros(n_xxx, dtype=torch.complex64)
 
         (
             n_qk,
@@ -149,7 +148,7 @@ class CartesianVolume():
             k_p_r_,
             weight_3d_k_p_r_,
             volume.l_max_,
-            volume.a_k_Y_reco_yk_,  # NOTE: remove "reco" from the Volume class name
+            volume.a_k_Y_reco_yk_,  # NOTE: TODO: remove "reco" from the Volume class name
             # sqrt_2lp1_,
             # sqrt_2mp1_,
             # sqrt_rat0_m_,
@@ -158,7 +157,7 @@ class CartesianVolume():
         )[:6]
 
         eta = torch.pi / k_p_r_max
-        a_x_u_xxx_ = xxnufft3d3(
+        a_x_xxx_ = xxnufft3d3(
             n_qk,
             2 * torch.pi * k_c_0_qk_ * eta,
             2 * torch.pi * k_c_1_qk_ * eta,
@@ -166,20 +165,20 @@ class CartesianVolume():
             a_k_p_qk_ * weight_3d_k_p_qk_,
             +1,
             1e-12,
-            n_xxx_u,
-            x_u_0.ravel() / eta,
-            x_u_1.ravel() / eta,
-            x_u_2.ravel() / eta,
+            n_xxx,
+            x_0.ravel() / eta,
+            x_1.ravel() / eta,
+            x_2.ravel() / eta,
         )
 
         obj = cls(
-            a_x_u_xxx_, # type: ignore
-            a_k_p_qk_,
-            sqrt_2lp1_,
-            sqrt_2mp1_,
-            sqrt_rat0_m_,
-            sqrt_rat3_lm__,
-            sqrt_rat4_lm__,
+            a_x_u_xxx_ = a_x_xxx_,
+            a_k_p_qk_ = a_k_p_qk_,
+            sqrt_2lp1_ = sqrt_2lp1_,
+            sqrt_2mp1_ = sqrt_2mp1_,
+            sqrt_rat0_m_ = sqrt_rat0_m_,
+            sqrt_rat3_lm__ = sqrt_rat3_lm__,
+            sqrt_rat4_lm__ = sqrt_rat4_lm__,
         )
 
         return obj
