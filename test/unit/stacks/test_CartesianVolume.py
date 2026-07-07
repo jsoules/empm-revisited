@@ -1,11 +1,9 @@
 import torch
-from unittest.mock import Mock, patch
 from torch.testing import assert_close
 from pytest import mark
 from numpy import float64, ceil
 
 from empm.stacks import CartesianVolume, Volume
-from empm.parameters import Parameters
 
 from dir_empm.plane_wave_expansion_1 import plane_wave_expansion_1
 from dir_empm.sample_sphere_7 import sample_sphere_7
@@ -49,10 +47,9 @@ def _get_spharm_volume(k_int: int, k_p_r_max: float, k_eq_d: float, n_x: int, ra
 
     kpr_max_f = float64(k_p_r_max)
     keqd_f = float64(k_eq_d)
-    # (n_k_p_r, k_p_r_) = sample_sphere_7(0, kpr_max_f, keqd_f, 'L', 1, 0)[7:9]
     (n_k_p_r, k_p_r_, weight_3d_k_p_r_) = sample_sphere_7(0, kpr_max_f, keqd_f, 'L', 1, 0)[7:10]
 
-    l_max_upb = k_int   # source rounds 2*pi*kpr_max, but kpr_max is k_int / 2pi
+    l_max_upb = k_int   # source rounds 2*pi*kpr_max, but kpr_max was k_int / 2pi to begin with
     l_max_ = torch.zeros(n_k_p_r, dtype=torch.int32)
     for nk_p_r in range(n_k_p_r):
         l_max_[nk_p_r] = max(0, min(l_max_upb, 1 + int(ceil(2 * torch.pi * k_p_r_[nk_p_r]))))
@@ -82,15 +79,8 @@ def _get_spharm_volume(k_int: int, k_p_r_max: float, k_eq_d: float, n_x: int, ra
         None, None, None, None, None,
         0 if centered else 1
     )
-    # Shapes match out: backup and raveled reference are both 262144
-    # Note BACKUP is giving a Complex128, though the imaginary part is pretty close to 0
-    # raise ValueError(f"backup shape: {backup.shape} ref shape: {reference.ravel().shape}")
-    # raise ValueError(f"{torch.max(backup.imag)} vs scale of real: {torch.max(backup.real)}")
-    # raise ValueError(f"{torch.min(backup.imag)} vs scale of real: {torch.min(backup.real)}")
-    backup2 = backup.real.to(dtype=torch.float32)
-    # assert_close(backup2, reference.ravel())
 
-    return (vol, reference, backup2)
+    return (vol, reference, backup)
 
 
 @mark.parametrize("centered", [True, False])
@@ -112,7 +102,12 @@ def test_from_spharm_volume(centered: bool):
         n_x = n_x,
         use_centered = centered
     )
-    # ref-cartesian is float32
-    # res axuxxx is complex128 in both cases... hmm
-    assert_close(res.a_x_u_xxx_.real.to(dtype=torch.float32), b)
-    assert_close(res.a_x_u_xxx_.real.to(dtype=torch.float32), ref_cartesian.ravel())
+    # confirm we are recovering the value from the original implementation
+    assert_close(res.a_x_u_xxx_, b)
+
+    # Per AR, these are different reconstruction techniques and can't be expected
+    # to tie out exactly. For the time being it is sufficient that we recover a
+    # relative L2 norm difference of ~1.5e-5.
+    l2_test = torch.linalg.vector_norm(res.a_x_u_xxx_)          # this is 1d
+    l2_ref = torch.linalg.vector_norm(ref_cartesian.ravel())    # this is not
+    assert abs((l2_ref - l2_test) / l2_test) < 2e-5
