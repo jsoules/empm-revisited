@@ -56,9 +56,9 @@ def test_apply_displacements_from_poses():
 def _make_ref_grid() -> PolarGrid:
     # polar grids
     k_p_r_max = 24./torch.pi
-    k_eq_d = 0.5/torch.pi
+    k_eq_d = 0.25/torch.pi
     n_w_max = 98
-    (n_k_p_r, k_p_r_, weight_3d) = get_weight_3d_1(0, k_p_r_max, k_eq_d, 'L')
+    (n_k_p_r, k_p_r_, weight_3d, _) = get_weight_3d_1(0, k_p_r_max, k_eq_d, 'L')
     n_w_0in_ = n_w_max * torch.ones(n_k_p_r, dtype=torch.int32)
 
     # NOTE: Per the original code, we are using -1 for k_eq_d instead of the value actually used
@@ -79,7 +79,8 @@ def _make_reference_gaussian_image_stack(grid: PolarGrid, n_points_cart: int = 1
         grid_points = torch.linspace(-cartesian_radius, cartesian_radius, n_points_cart + 1, dtype=torch.float32)[:-1]
     inter_point_dist = grid_points[1] - grid_points[0]
 
-    x_0__, x_1__ = torch.meshgrid(grid_points,grid_points,indexing='ij'); #<-- order reversed to match matlab. ;
+    # x_0__, x_1__ = torch.meshgrid(grid_points,grid_points,indexing='ij'); #<-- order reversed to match matlab. ;
+    x_1__, x_0__ = torch.meshgrid(grid_points,grid_points,indexing='ij')
 
     # Parameters for Gaussian image
     _sigma_x = 0.0625
@@ -124,7 +125,7 @@ def _make_reference_gaussian_image_stack(grid: PolarGrid, n_points_cart: int = 1
 def test_from_cartesian_image_stack(centered: bool):
     # Make reference images as Gaussians, in stack
     grid = _make_ref_grid()
-    n_pts_cart = 128 + (0 if centered else 1)
+    n_pts_cart = 128
     cart_diam = 2.0
     (phys_stack, fourier_expected, inter_point_dist) = _make_reference_gaussian_image_stack(
         grid,

@@ -1,7 +1,7 @@
 import torch
 from torch.testing import assert_close
 from pytest import mark
-from numpy import float64, ceil
+from numpy import float32, ceil
 
 from empm.stacks import CartesianVolume, Volume
 
@@ -45,8 +45,8 @@ def _get_spharm_volume(k_int: int, k_p_r_max: float, k_eq_d: float, n_x: int, ra
         [-.5, -1.5, 2.]
     ], dtype=torch.float32) / (2 * k_p_r_max)
 
-    kpr_max_f = float64(k_p_r_max)
-    keqd_f = float64(k_eq_d)
+    kpr_max_f = float32(k_p_r_max)
+    keqd_f = float32(k_eq_d)
     (n_k_p_r, k_p_r_, weight_3d_k_p_r_) = sample_sphere_7(0, kpr_max_f, keqd_f, 'L', 1, 0)[7:10]
 
     l_max_upb = k_int   # source rounds 2*pi*kpr_max, but kpr_max was k_int / 2pi to begin with
