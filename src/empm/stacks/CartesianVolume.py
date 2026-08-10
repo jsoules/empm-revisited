@@ -1,6 +1,6 @@
 from torch import Tensor
 import torch
-from numpy import float64
+from numpy import float32
 
 from .Volume import Volume
 from empm.util import generate_equispaced_points
@@ -121,8 +121,8 @@ class CartesianVolume():
             k_c_2_qk_,
         ) = sample_sphere_7(
             flag_verbose = 0,
-            k_p_r_max = float64(k_p_r_max),
-            k_eq_d = float64(k_eq_d),
+            k_p_r_max = float32(k_p_r_max),
+            k_eq_d = float32(k_eq_d),
             str_T_vs_L = 'L',
             flag_uniform_over_n_k_p_r = 1
         )[:13]

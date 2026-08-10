@@ -79,7 +79,6 @@ def _make_reference_gaussian_image_stack(grid: PolarGrid, n_points_cart: int = 1
         grid_points = torch.linspace(-cartesian_radius, cartesian_radius, n_points_cart + 1, dtype=torch.float32)[:-1]
     inter_point_dist = grid_points[1] - grid_points[0]
 
-    # x_0__, x_1__ = torch.meshgrid(grid_points,grid_points,indexing='ij'); #<-- order reversed to match matlab. ;
     x_1__, x_0__ = torch.meshgrid(grid_points,grid_points,indexing='ij')
 
     # Parameters for Gaussian image
