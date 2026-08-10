@@ -227,6 +227,8 @@ class Parameters():
             self.tolerance_pm = self.tolerance_master
         self.flag_gpu = flag_gpu
         self.rseed = rseed
+        if self.rseed is not None:
+            torch.manual_seed(self.rseed)
         self.order_limit_MS = order_limit_MS
         self.delta_r_max = delta_r_max
         self.delta_r_upb = delta_r_upb

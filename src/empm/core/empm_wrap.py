@@ -1,10 +1,10 @@
 import torch
 from torch import Tensor
 
-from .parameters import Parameters
-from .grids import PolarGrid, FTK
-from .stacks import CTFCluster, CTF, ImageStack, Poses, force_isotropy, Volume
-from .empm_loop import execute_empm
+from empm.parameters import Parameters
+from empm.grids import PolarGrid, FTK
+from empm.stacks import CTFCluster, CTF, ImageStack, Poses, force_isotropy, Volume
+from empm.core import execute_empm
 
 # TODO: The below entries should be configured in an incoming Poses object
 # euler_polar_a_ini_M_=None,
@@ -36,11 +36,6 @@ def empm_loop_wrapper(  # former tfpmut_wrap_6. Name to be further revised.
     if (parameter.flag_save_stage > 1):
         _checkpoint_initial(parameter, grid, volume)
 
-    # TODO: This should probably be done when the parameter object is created
-    # to avoid running the risk of ever resetting the seed midway
-    if parameter.rseed is not None:
-        torch.manual_seed(parameter.rseed)
-
     if (parameter.flag_clump_vs_cluster == 0):
         ctf_clusters = _cluster_ctfs(parameter, grid, ctfs, images, volume, delta_sigma_base)
     elif parameter.flag_clump_vs_cluster == 1:
@@ -66,7 +61,7 @@ def empm_loop_wrapper(  # former tfpmut_wrap_6. Name to be further revised.
     )
     parameter.print_per_verbosity(" % [finished empm loop wrapper]")
 
-    return volume.a_k_Y_reco_yk_
+    return volume
 
 
 def _cluster_ctfs(

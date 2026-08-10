@@ -1,4 +1,3 @@
-import torch
 from torch import Tensor
 
 # TODO: Might be better to have the constructor allocate based on the grid, and then let
